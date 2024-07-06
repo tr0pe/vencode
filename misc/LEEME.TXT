@@ -1,0 +1,275 @@
+                                                        
+
+       ██▒   █▓▓█████  ███▄    █  ▄████▄   ▒█████  ▓█████▄ ▓█████ 
+      ▓██░   █▒▓█   ▀  ██ ▀█   █ ▒██▀ ▀█  ▒██▒  ██▒▒██▀ ██▌▓█   ▀ 
+       ▓██  █▒░▒███   ▓██  ▀█ ██▒▒▓█    ▄ ▒██░  ██▒░██   █▌▒███   
+        ▒██ █░░▒▓█  ▄ ▓██▒  ▐▌██▒▒▓▓▄ ▄██▒▒██   ██░░▓█▄   ▌▒▓█  ▄ 
+         ▒▀█░  ░▒████▒▒██░   ▓██░▒ ▓███▀ ░░ ████▓▒░░▒████▓ ░▒████▒
+         ░ ▐░  ░░ ▒░ ░░ ▒░   ▒ ▒ ░ ░▒ ▒  ░░ ▒░▒░▒░  ▒▒▓  ▒ ░░ ▒░ ░
+         ░ ░░   ░ ░  ░░ ░░   ░ ▒░  ░  ▒     ░ ▒ ▒░  ░ ▒  ▒  ░ ░  ░
+           ░░     ░      ░   ░ ░ ░        ░ ░ ░ ▒   ░ ░  ░    ░   
+            ░     ░  ░         ░ ░ ░          ░ ░     ░       ░  ░
+            ░                    ░                    ░
+           ░  tr0pe 'https://github.com/tr0pe/vencode'
+
+      vencode: Convierte cualquier archivo en un vídeo, para después (por
+      ejemplo) subirlo a YouTube y tener almacenamiento ilimitado.
+
+  -> Instrucciones <-
+
+       Antes que nada, cabe aclarar que este programa no puede convertir
+       carpetas (por obvias razones) así que si quieres convertir una carpeta
+       tienes que COMPRIMIRLA, ya sea con WinRAR, ZIP, 7z, tar o lo que
+       tú quieras, para así obtener un solo archivo pero con la carpeta
+       dentro.
+
+    -- Convertir archivo a video --
+
+       1. Abre el símbolo del sistema (CMD)
+
+
+       2. Dirígete a esta carpeta (donde se encuentra vencode.exe).
+          Puedes simplemente copiar y pegar la ruta desde el explorador de
+          archivos, por ejemplo:
+
+           > cd C:\users\tr0pe\Escritorio\vencode_1.0\
+
+          Recuerda que el comando 'cd' sirve para ingresar a un directorio
+          deseado.
+
+
+       3. Ejecuta el programa de la siguiente forma para mostrar la ayuda:
+
+           > vencode.exe -h
+
+          Debería de mostrarte todas las opciones que puedes usar para el uso
+          de este programa (esto es solo para verificar que todo esté en orden).
+
+
+       4. Si todo salió bien, ¡ya puedes empezar a convertir archivos!
+            
+           > vencode.exe -e [ruta de tu archivo] -o [nombre del video salida]
+         
+          Reemplaza '[ruta de tu archivo]' con la ruta completa de tu archivo,
+          puedes simplemente arrastrarlo a la ventana del CMD para que se
+          coloque en automático, y luego escribir '-o' seguido del nombre del
+          video salida:
+            
+             > vencode.exe -e C:\Documentos\Archivos.rar -o Archivos.rar.mp4
+
+          Puedes colocarle cualquier nombre al video salida, pero recuerda
+          que siempre debe de terminar con la extensión '.mp4'.
+
+       
+       5. Si todo lo anterior salió bien, deberías de ver en la carpeta de
+          vencode tu video. Si lo reproduces, verás un montón de recuadros
+          negros y blancos. Ahí estará contenido el archivo que convertiste,
+          y los datos permanecerán intactos.
+          
+          Ahora podrás subir tu video a la plataforma de videos que tú
+          quieras y almacenar tus archivos de esa forma.
+
+
+    -- Convertir video a archivo --
+      
+       1. Si quieres tener aquel archivo como estaba originalmente, o convertir
+          cualquier otro, ejecuta el programa de esta forma:
+
+           > vencode.exe -d [ruta del video] -o [nombre del archivo de salida]
+
+          Como en el caso anterior, tienes que reemplazar '[ruta del video]'
+          con la ruta completa del video a convertir, o simplemente arrastrarlo
+          dentro de la ventana del CMD para luego escribir '-o' seguido del
+          nombre del archivo de salida.
+
+          Ejemplo:
+
+           > vencode.exe -d C:\Videos\Archivos.rar.mp4 -o Archivos.rar
+              
+
+          Algo a tener en cuenta, es que (a menos que tú sepas) la extensión
+          del archivo d salida será desconocida, así que ya quedará en tus
+          propios medios averiguar cuál es, pero como se mencionó con
+          anterioridad, los datos están intactos.
+
+  -> Incrementar la velocidad de conversión de archivo a video <-
+          
+       Si intentas convertir un archivo que es demasiado grande, podrás notar
+       que el proceso se puede tornar lento y tedioso. Es por eso que
+       hice que el programa hiciera múltiples escrituras a la vez.
+
+       Para activarlo, necesitas usar la opción '-t' seguido del número de
+       subprocesos en paralelo se usarán para que la conversión sea mucho
+       más rápida, por ejemplo:
+
+        > vencode.exe -e [ruta del archivo] -o [nombre del video salida] -t 8
+
+       Como habrás notado, coloqué 8 subprocesos que harán la escritura a
+       la vez. Como recomendación, te sugiero que coloques el doble de los
+       núcleos que tiene el procesador de tu computadora. Mi computadora
+       tiene un procesador de 4 núcleos, por eso es que coloqué '-t 8'.
+
+       Puedes experimentar colocando más subprocesos, tal vez encuentres el
+       valor ideal para tí. Pero ten cuidado, si colocas más subprocesos de los
+       que tu procesador soporta, el resultado puede ser que el proceso sea
+       más lento..
+
+       Otra cosa que puedes hacer para que el proceso de conversión de archivo
+       a video sea más rápido, es usar la opción '-z'.
+       Esta opción activa un parámetro para la codificación del video llamada
+       "ultrafast", que resultará en un proceso mucho más rápido.
+       El problema de esto es que el tamaño de archivo del video será mucho
+       mayor, pero si te importa más la velocidad que el peso del video, esta
+       opción te será muy útil. Ejemplo:
+       
+        > vencode.exe -e [archivo] -o [video] -t 8 -z
+
+
+       Otra opción interesante que puedes aplicar, es '-c libx264'
+       Lo que pasa es que, los videos MP4 pueden ser creados con diversos
+       códecs, y en este caso, el códec usado por defecto es libx265.
+       Cuando se codifica con libx264, el proceso es muchisimo más rápido, pero
+       el costo es que el video tendrá un tamaño de archivo mucho más grande.
+       Aplicando esto, el comando se vería de la siguiente forma:
+       
+        > vencode.exe -e [archivo] -o [video] -t 8 -z -c libx264
+
+       El comando anterior, ya haría el proceso de conversión de archivo a
+       video de una forma muy rápida, pero lamentablemente el tamaño de archivo
+       del video será bastante más grande a comparación del archivo original.
+       Pero como mencioné, si tienes espacio de sobra en tu computadora, usar
+       esto puede ser muy útil.
+
+
+  -> Más opciones avanzadas <-
+
+       Si ejecutaste el comando 'vencode.exe -h', te habrás dado cuenta que
+       aparecen muchas más opciones que puedes aplicar, ya sea para incrementar
+       la velocidad de escritura, cambiar la resolución del video, el códec,
+       entre muchas más opciones.
+       
+       A continuación, se explicarán todas y cada una:
+
+
+       -e [nombre del archivo]        Especifica que se convertirá un archivo
+                                      a video.
+
+
+       -d [nombre del video]          Especifica que se convertirá un video
+                                      a un archivo.
+
+
+       -o [nombre de la salida]       Especifica el nombre de la salida, ya sea
+                                      video o archivo dependiendo de la
+                                      operación que se vaya a realizar.
+
+
+       -r ANCHOxALTO                  Especifica la resolución en píxeles
+                                      del video que se obtendrá como salida.
+                                      Este argumento es opcional, y sólo se usa
+                                      cuando se convierte un archivo a video.
+                                      Si no se coloca este argumento, tomará
+                                      como defecto la resolución 1920x720.
+
+
+       -c [códec]                     Especifica el códec que se usará para
+                                      crear el video.
+                                      Este argumento es opcional, y sólo se usa
+                                      cuando se convierte un archivo a video.
+                                      Si no se coloca este argumento, tomará
+                                      como defecto el codec libx265.
+                                      Hasta ahora sólo se tiene testeados
+                                      libx264 y libx265, pero puedes intentar
+                                      especificar uno distinto a ver qué
+                                      resultado obtienes.
+
+       -b                             Habilita el soporte para escritura de
+                                      imágenes en formato BMP (experimental).
+                                      Esto hace el proceso de escritura de
+                                      imágenes mucho rápido, pero requiere más
+                                      espacio en disco. ADVERTENCIA: El proceso
+                                      de creación del video será mucho más lento
+                                      que con PNG, de preferencia no usar esta
+                                      opción.
+
+       -z                             Especifica que la creación del video
+                                      usará el preset "ultrafast", para que ese
+                                      proceso sea (como su nombre lo indica)
+                                      mucho más rápido.
+                                      Este argumento es opcional, y sólo se usa
+                                      cuando se convierte un archivo a video.
+
+
+       -s                             Si usas este argumento, no se creará el
+                                      video y como resultado, obtendrás la
+                                      carpeta donde se almacenaron todos los
+                                      frames del mismo.
+
+
+       -t [número de subprocesos]     Especifica la cantidad de subprocesos que
+                                      se usarán para la escritura de los datos
+                                      en los frames.
+                                      Este argumento es opcional, y sólo se usa
+                                      cuando se convierte un archivo a video.
+                                      Si no se coloca este argumento, tomará
+                                      como defecto el valor de '1', causando
+                                      que los frames se escriban uno por uno de
+                                      forma consecutiva.
+
+
+       -p [tamaño de recuadros]       Especifica el tamaño de los recuadros
+                                      blancos y negros que representan los
+                                      '1' y '0' de los datos del archivo.
+                                      Este argumento es opcional, y si no se
+                                      usa este argumento, tomará el valor por
+                                      defecto de 4.
+                                      MUY IMPORTANTE: Si convertiste un archivo
+                                      a video con un tamaño de recuadro
+                                      diferente al que viene por defecto,
+                                      tienes que especificar el tamaño de
+                                      recuadro con el que se creó el video para
+                                      poder transformar ese video al archivo
+                                      original, de lo contrario, el programa
+                                      podría tener errores y la información no
+                                      se decodificará.
+
+
+       -a [1,2]                       Especifica el método que se usará para
+                                      obtener el valor del bit de los recuadros
+                                      del frame:
+                                        1: Obtiene la mediana de los colores,
+                                           esto es rápido pero poco preciso, la
+                                           información podría llegar a perderse
+                                           o resultar corrupta.
+                                        
+                                        2: Obtiene la media aritmética de los
+                                           colores. Esto puede resultar un poco
+                                           más lento, pero es el método más
+                                           preciso. El riesgo de pérdida de
+                                           datos se disminuye.
+                                      Este argumento sólo está disponible cuando
+                                      un video es convertido a un archivo, y el
+                                      valor por defecto es 2.
+
+
+       -q                             Deshabilita los textos de mensaje o
+                                      advertencia.
+
+
+       -k                             Este argumento causa que la carpeta donde
+                                      se guardan los frames no sea eliminada.
+
+
+       -h                             Muestra el mensaje de ayuda.
+
+
+  -> Notas extra <-
+
+       Si llegaste hasta aquí, gracias por tomarte la molestia de ver y leer
+       este archivo.
+       
+
+ [tr0pe] 2024-APR-12 | 07:12:13 AM
+
+
+
