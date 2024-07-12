@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define __VERSION "1.2.3"
+#define __VERSION "1.2.4"
 
 typedef struct{
 	unsigned int width;
@@ -114,7 +114,6 @@ void print_help(char *argv0){
 }
 
 int getopts(arg_s *args, int argc, char *argv[]){
-
 	char height[8];
 	char  width[8];
 
@@ -151,6 +150,7 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	int codec_arg_len = 0;
 
 	int framerate = 0;
+
 	int am = 0;
 
 	for(int i=1; i<argc; i++){

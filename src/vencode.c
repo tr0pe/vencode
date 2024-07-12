@@ -1565,6 +1565,7 @@ int main(int argc, char *argv[]){
 	args.ffmpeg_path = NULL;
 	args.codec = NULL;
 	args.skip_ffmpeg = 0;
+	args.rmode = 2;
 
 	int return_value;
 	return_value = getopts(&args,argc,argv);
