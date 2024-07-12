@@ -10,7 +10,7 @@ V1.2.3
 -> Dependencies to install <-
 
   * For Windows:
-      Anything.
+      Anything
 
   * UNIX-like (Linux, BSD, MacOS, Android, etc):
       - libpng
@@ -56,25 +56,27 @@ V1.2.3
 
 -> Build <-
  
-    For any GNU system, just type make:
+    For any GNU system, configure and make:
  
+       $ ./configure
        $ make
-
+      
     If you are using BSD, you need to use gmake:
 
-       $ gmake -f GNUmakefile
+       $ ./configure
+       $ gmake
 
-    For Windows... You must have installed a C compiler and GNUmake, then
-    set the CC and WINDRESS variables with the appropriate values, finally,
-    just type:
+    For Windows... You must have installed a C compiler and GNU Make, then
+    set the CC and WINDRESS variables with the appropriate values, and finally
+    type:
 
-       $ make mingw
+       C:> make -f MinGW/Makefile.win
 
     the 'MinGW' folder (for Windows build). contains the needed libraires
     (libpng and zlib) with their licenses and FFMPEG binary.
 
-    Note: You can build a Win32 binary on any UNIX-like operating system
-    with MinGW toolchain.
+    Note: You can build a Windows binary on any operating system with MinGW
+    toolchain.
 
 
 -> About the multi thread writing <-
@@ -99,10 +101,6 @@ V1.2.3
 
      * Set the '-z' option to enable "ultrafast" preset in FFMPEG.
 
-     * Set the '-b' option to enable BMP support. This will make an extreme
-       increase in speed, but it requires more disk space and more I/O
-       performance (only file to video process has BMP support).
-
     If you use libx264 codec with "ultrafast" preset, the file size of
     video will be more larger (maybe 8-9 times larger than original file).
 
@@ -110,4 +108,5 @@ V1.2.3
     argument, the file size will be more lightweight, (maybe 4-5 times more
     larger than original file), and do the process without BMP (-b option).
     If you do that, the process will be slower.
+
 

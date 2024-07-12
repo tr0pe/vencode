@@ -1,0 +1,83 @@
+#!/bin/sh
+OS=`uname`
+check_deps(){
+	if ! command -v cc > /dev/null 2>&1; then
+		echo "C compiler not found"
+		exit 1
+	elif ! command -v pkg-config > /dev/null 2>&1; then
+		echo "pkg-config not found"
+		exit 1
+	elif ! command -v make > /dev/null 2>&1; then
+		echo "make not found"
+		exit 1
+	fi
+	if [ $OS = "FreeBSD" -o $OS = "NetBSD" -o $OS = "OpenBSD" ]; then
+		if ! command -v gmake > /dev/null 2>&1; then
+			echo "gmake not found, please install it"
+			exit 1
+		fi
+	fi
+}
+get_cflags(){
+	pkg-config --cflags libpng
+	if [ $? != 0 ]; then
+		echo "libpng not found, please install it"
+		exit 1;
+	fi
+}
+get_libs(){
+	pkg-config --libs libpng
+	if [ $? != 0 ]; then
+		echo "libpng not found, please install it"
+		exit 1;
+	fi
+}
+gen_makefile(){
+	printf "CC\t=\t$1\n"
+	printf "CFLAGS\t=\t$2 -Iinclude -O3\n"
+	printf "LIBS\t=\t$3 -lpthread\n"
+	printf 'TARGET\t=\tvencode\n'
+	printf 'OBJDIR\t=\tobj\n'
+	printf 'SRCDIR\t=\tsrc\n'
+	printf 'OBJS\t=\t$(OBJDIR)/vencode.o\t\\\n'
+	printf '\t\t$(OBJDIR)/args.o\t\\\n'
+	printf '\t\t$(OBJDIR)/util.o\t\\\n'
+	printf '\t\t$(OBJDIR)/bmp.o\n\n'
+	printf -- '-include $(OBJDIR)/*.d\n\n'
+	printf 'all : $(TARGET)\n\n'
+	printf '$(OBJDIR)/%%.o : $(SRCDIR)/%%.c\n'
+	printf '\t@mkdir -p $(OBJDIR)\n'
+	printf '\t$(CC) -c -MD $(CFLAGS) $< -o $@\n\n'
+	printf '$(TARGET) : $(OBJS)\n'
+	printf '\t$(CC) $(OBJS) $(LIBS) -o $(TARGET)\n\n'
+	printf 'clean:\n'
+	printf '\trm -fr $(TARGET) $(OBJDIR)\n\n'
+	printf 'install:\n'
+	printf "\tinstall -m 755 \$(TARGET) $4/\n\n"
+	printf 'uninstall:\n'
+	printf "\trm -f $4/\$(TARGET)\n\n"
+	printf '.PHONY : all clean install uninstall\n'
+}
+check_deps
+CFLAGS=`get_cflags`
+LIBS=`get_libs`
+
+for i in "$@"; do
+	echo $i | grep -q -- "--prefix=*"
+	if [ $? = 0 ]; then
+		PREFIX=`echo $i | sed -e "s/--prefix=//g"`
+	fi
+done
+if [ -z $PREFIX ]; then
+	PREFIX=/usr/local/bin;
+fi
+
+printf "prefix: $PREFIX\n\n"
+
+gen_makefile cc "$CFLAGS" "$LIBS" "$PREFIX" > GNUmakefile
+echo "Configuration done"
+if [ $OS = "FreeBSD" -o $OS = "NetBSD" -o $OS = "OpenBSD" ]; then
+	echo "Run: gmake"
+else
+	echo "Run: make"
+fi
