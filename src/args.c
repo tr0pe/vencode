@@ -24,6 +24,8 @@ typedef struct{
 	_Bool quiet;
 	_Bool bmp;
 	_Bool noprogress;
+	_Bool reverse_x;
+	_Bool reverse_y;
 }arg_s;
 
 void print_help(char *argv0){
@@ -95,13 +97,16 @@ void print_help(char *argv0){
 	printf("                                file\n\n");
 
 	printf(" -a [1,2]                       Set the pixel read mode.\n");
-	printf("                                when a sqare-bit is readed, the color may be \n");
+	printf("                                when a square-bit is readed, the color may be \n");
 	printf("                                parsed in different ways:\n");
-	printf("                                1: Get the median color of square\n");
+	printf("                                  1: Get the median color of square\n");
 	printf("                                     (inaccurate, fast)\n");
-	printf("                                2: Get the arithmetic average of colors\n");
+	printf("                                  2: Get the arithmetic average of colors\n");
 	printf("                                     (accurate)\n");
 	printf("                                Default value: 2.\n\n");
+
+	printf(" -y                             Reverse Y axis\n\n");
+	printf(" -Y                             Reverse X axis\n\n");
 
 	printf(" -n                             Disable confirm/replace prompts.\n\n");
 	printf(" -q                             Disable warning messages.\n\n");
@@ -133,6 +138,8 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	_Bool barg = 0;
 	_Bool Qarg = 0;
 	_Bool aarg = 0;
+	_Bool yarg = 0;
+	_Bool Yarg = 0;
 
 	short rXcount = 0;
 
@@ -463,6 +470,20 @@ int getopts(arg_s *args, int argc, char *argv[]){
 			}
 			Qarg = 1;
 		}
+		else if(!strcmp(argv[i],"-y")){//disable progress message
+			if(yarg){
+				fprintf(stderr,"Duplicated reverse X axis argument.\n");
+				return 1;
+			}
+			yarg = 1;
+		}
+		else if(!strcmp(argv[i],"-Y")){//disable progress message
+			if(Yarg){
+				fprintf(stderr,"Duplicated reverse Y axis argument.\n");
+				return 1;
+			}
+			Yarg = 1;
+		}
 		else if(!strcmp(argv[i],"-h")){// help
 			print_help(argv[0]);
 			return -1;
@@ -674,6 +695,18 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	}
 	if(aarg){
 		args->rmode = am;
+	}
+	if(yarg){
+		args->reverse_y = 1;
+	}
+	else{
+		args->reverse_y = 0;
+	}
+	if(Yarg){
+		args->reverse_x = 1;
+	}
+	else{
+		args->reverse_x = 0;
 	}
 	return 0;
 }

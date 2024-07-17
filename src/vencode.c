@@ -54,9 +54,11 @@ char set_bin(_Bool *num){
 	return byte;
 }
 
-void png_set_pixel(png_bytep row,int x, int color, int pixel_size){
+void png_set_pixel(png_bytepp rows,int y, int x, int color, int pixel_size){
 	for(int i=0;i<pixel_size; i++){
-		row[x * pixel_size + i] = color;
+		for(int j=0;j<pixel_size;j++){
+			rows[y+i][x + j] = color;
+		}
 	}
 }
 
@@ -203,6 +205,8 @@ typedef struct{
 	int return_value;
 
 	int bmp;
+	_Bool reverse_x;
+	_Bool reverse_y;
 }wr_img_s;
 
 void destroy_wr_img(wr_img_s *img){
@@ -285,7 +289,6 @@ void *write_image(void *arg){
 
 	if(img->bmp){
 		//thanks to https://lmcnulty.me/words/bmp-output/
-
 		pthread_mutex_lock(&mutex);
 		FILE *BMP_OUTPUT = fopen(img->filename,"w");
 
@@ -334,51 +337,211 @@ void *write_image(void *arg){
 			return NULL;
 		}
 
-		for(
-			int row = img->height-img->pixel_size;
-			row >= 0;
-			row-=img->pixel_size
-		){
-			for(int col = 0; col < img->width; col+=img->pixel_size){
-				if(buf_ind < img->sz){
-					c = buffer[buffer_index];
-					buffer_index++;
-					get_bin(c, num);
+		if(img->reverse_y){
+			for(
+				int row = 0;
+				row < img->height;
+				row += img->pixel_size
+			){
+				if(img->reverse_x){
+					for(
+						int col = img->width - img->pixel_size;
+						col >= 0;
+						col -= img->pixel_size
+					){
+						if(buf_ind < img->sz){
+							c = buffer[buffer_index];
+							buffer_index++;
+							get_bin(c, num);
 
-					for(int i=0;i<8;i++){
-						if(num[i]){
-							bmp_set_pixel(
-								bitmap,
-								col+(img->pixel_size * i),
-								row,
-								0,
-								padded_width,
-								img->pixel_size
-							);
+							for(int i=0;i<8;i++){
+								if(num[i]){
+									bmp_set_pixel(
+										bitmap,
+										col-(img->pixel_size * i),
+										row,
+										0,
+										padded_width,
+										img->pixel_size
+									);
+								}
+								else{
+									bmp_set_pixel(
+										bitmap,
+										col-(img->pixel_size * i),
+										row,
+										255,
+										padded_width,
+										img->pixel_size
+									);
+								}
+							}
+							col-=(img->pixel_size * 7);
+							buf_ind++;
 						}
 						else{
 							bmp_set_pixel(
 								bitmap,
-								col+(img->pixel_size * i),
+								col,
 								row,
-								255,
+								127,
 								padded_width,
 								img->pixel_size
 							);
 						}
 					}
-					col+=(img->pixel_size * 7);
-					buf_ind++;
 				}
 				else{
-					bmp_set_pixel(
-						bitmap,
-						col,
-						row,
-						127,
-						padded_width,
-						img->pixel_size
-					);
+					for(
+						int col = 0;
+						col < img->width;
+						col += img->pixel_size
+					){
+						if(buf_ind < img->sz){
+							c = buffer[buffer_index];
+							buffer_index++;
+							get_bin(c, num);
+
+							for(int i=0;i<8;i++){
+								if(num[i]){
+									bmp_set_pixel(
+										bitmap,
+										col+(img->pixel_size * i),
+										row,
+										0,
+										padded_width,
+										img->pixel_size
+									);
+								}
+								else{
+									bmp_set_pixel(
+										bitmap,
+										col+(img->pixel_size * i),
+										row,
+										255,
+										padded_width,
+										img->pixel_size
+									);
+								}
+							}
+							col+=(img->pixel_size * 7);
+							buf_ind++;
+						}
+						else{
+							bmp_set_pixel(
+								bitmap,
+								col,
+								row,
+								127,
+								padded_width,
+								img->pixel_size
+							);
+						}
+					}
+				}
+			}
+		}
+		else{
+			for(
+				int row = img->height-img->pixel_size;
+				row >= 0;
+				row-=img->pixel_size
+			){
+				if(img->reverse_x){
+					for(
+						int col = img->width - img->pixel_size;
+						col >= 0;
+						col -= img->pixel_size
+					){
+						if(buf_ind < img->sz){
+							c = buffer[buffer_index];
+							buffer_index++;
+							get_bin(c, num);
+
+							for(int i=0;i<8;i++){
+								if(num[i]){
+									bmp_set_pixel(
+										bitmap,
+										col-(img->pixel_size * i),
+										row,
+										0,
+										padded_width,
+										img->pixel_size
+									);
+								}
+								else{
+									bmp_set_pixel(
+										bitmap,
+										col-(img->pixel_size * i),
+										row,
+										255,
+										padded_width,
+										img->pixel_size
+									);
+								}
+							}
+							col-=(img->pixel_size * 7);
+							buf_ind++;
+						}
+						else{
+							bmp_set_pixel(
+								bitmap,
+								col,
+								row,
+								127,
+								padded_width,
+								img->pixel_size
+							);
+						}
+					}
+				}
+				else{
+					for(
+						int col = 0;
+						col < img->width;
+						col += img->pixel_size
+					){
+						if(buf_ind < img->sz){
+							c = buffer[buffer_index];
+							buffer_index++;
+							get_bin(c, num);
+
+							for(int i=0;i<8;i++){
+								if(num[i]){
+									bmp_set_pixel(
+										bitmap,
+										col+(img->pixel_size * i),
+										row,
+										0,
+										padded_width,
+										img->pixel_size
+									);
+								}
+								else{
+									bmp_set_pixel(
+										bitmap,
+										col+(img->pixel_size * i),
+										row,
+										255,
+										padded_width,
+										img->pixel_size
+									);
+								}
+							}
+							col+=(img->pixel_size * 7);
+							buf_ind++;
+						}
+						else{
+							bmp_set_pixel(
+								bitmap,
+								col,
+								row,
+								127,
+								padded_width,
+								img->pixel_size
+							);
+						}
+					}
 				}
 			}
 		}
@@ -403,15 +566,17 @@ void *write_image(void *arg){
 	png_infop info;
 	png_structp png;
 
-	png_byte *row =
-	(png_byte *)malloc(4 * img->width * sizeof(png_byte));
-
-	if(row == NULL){
+	png_bytepp rows =
+	(png_bytepp)malloc(img->height * sizeof(png_bytep));
+	if(rows == NULL){
 		fprintf(stderr,"Error allocating memory for row pointer.\n");
 		free(num);
 		free(buffer);
 		img->return_value = -1;
 		return NULL;
+	}
+	for(int i=0;i < img->height;i++){
+		rows[i] = (png_bytep)calloc(img->width * 4, sizeof(png_byte));
 	}
 
 	pthread_mutex_lock(&mutex);
@@ -421,7 +586,7 @@ void *write_image(void *arg){
 
 	if(png_output == NULL){
 		perror(img->filename);
-		free(row);
+		free(rows);
 		free(num);
 		free(buffer);
 		img->return_value = -1;
@@ -433,7 +598,7 @@ void *write_image(void *arg){
 	png = png_create_write_struct(PNG_LIBPNG_VER_STRING,NULL,NULL,NULL);
 	if(!png){
 		fprintf(stderr,"Error creating png struct!");
-		free(row);
+		free(rows);
 		free(num);
 		free(buffer);
 		fclose(png_output);
@@ -444,7 +609,7 @@ void *write_image(void *arg){
 	info = png_create_info_struct(png);
 	if(!info){
 		fprintf(stderr,"Error creating info struct!");
-		free(row);
+		free(rows);
 		free(num);
 		free(buffer);
 		fclose(png_output);
@@ -472,44 +637,176 @@ void *write_image(void *arg){
 //	png_set_filter(png,PNG_FILTER_TYPE_BASE,PNG_ALL_FILTERS);
 
 	png_write_info(png,info);
-
-	for (int y = 0; y < img->height / img->pixel_size; y++){
-		for (int x = 0; x < img->width / img->pixel_size; x++){
-
-			if(buf_ind < img->sz){
-
-				c = buffer[buffer_index];
-				buffer_index++;
-				get_bin(c, num);
-
-				for(int i=0;i<8;i++){
-					if(num[i]){
-						png_set_pixel(row, x+i, 0, img->pixel_size);
+	if(img->reverse_y){
+		for(
+			int y = img->height - img->pixel_size;
+			y >= 0;
+			y -= img->pixel_size 
+		){
+			if(img->reverse_x){
+				for(
+					int x = img->width - img->pixel_size;
+					x >= 0;
+					x -= img->pixel_size
+				){
+					if(buf_ind < img->sz){
+						c = buffer[buffer_index];
+						buffer_index++;
+						get_bin(c, num);
+						for(int i=0;i<8;i++){
+							if(num[i])
+								png_set_pixel(
+									rows,
+									y,
+									x-(img->pixel_size * i),
+									0,
+									img->pixel_size
+								);
+							else
+								png_set_pixel(
+									rows,
+									y,
+									x-(img->pixel_size * i),
+									255,
+									img->pixel_size
+								);
+						}
+						buf_ind++;
+						x -= (img->pixel_size * 7);
 					}
 					else{
-						png_set_pixel(row, x+i, 255, img->pixel_size);
+						png_set_pixel(rows, y,x, 127, img->pixel_size);
 					}
 				}
-				x+=7;
-				buf_ind++;
 			}
-
 			else{
-				for(int i=0;i<8;i++){
-					png_set_pixel(row, x, 127, img->pixel_size);
+				for(
+					int x = 0;
+					x < img->width;
+					x += img->pixel_size
+				){
+					if(buf_ind < img->sz){
+						c = buffer[buffer_index];
+						buffer_index++;
+						get_bin(c, num);
+						for(int i=0;i<8;i++){
+							if(num[i])
+								png_set_pixel(
+									rows,
+									y,
+									x+(img->pixel_size * i),
+									0,
+									img->pixel_size
+								);
+							else
+								png_set_pixel(
+									rows,
+									y,
+									x+(img->pixel_size * i),
+									255,
+									img->pixel_size
+								);
+						}
+						buf_ind++;
+						x += (img->pixel_size * 7);
+					}
+					else{
+						png_set_pixel(rows, y,x, 127, img->pixel_size);
+					}
+				}
+			}
+		}	
+	}
+	else{
+		for(
+			int y = 0;
+			y < img->height;
+			y += img->pixel_size
+		){
+			if(img->reverse_x){
+				for(
+					int x = img->width - img->pixel_size;
+					x >= 0;
+					x -= img->pixel_size
+				){
+					if(buf_ind < img->sz){
+						c = buffer[buffer_index];
+						buffer_index++;
+						get_bin(c, num);
+						for(int i=0;i<8;i++){
+							if(num[i])
+								png_set_pixel(
+									rows,
+									y,
+									x-(img->pixel_size * i),
+									0,
+									img->pixel_size
+								);
+							else
+								png_set_pixel(
+									rows,
+									y,
+									x-(img->pixel_size * i),
+									255,
+									img->pixel_size
+								);
+						}
+						buf_ind++;
+						x -= (img->pixel_size * 7);
+					}
+					else{
+						png_set_pixel(rows, y,x, 127, img->pixel_size);
+					}
+				}
+			}
+			else{
+				for(
+					int x = 0;
+					x < img->width;
+					x += img->pixel_size
+				){
+					if(buf_ind < img->sz){
+						c = buffer[buffer_index];
+						buffer_index++;
+						get_bin(c, num);
+						for(int i=0;i<8;i++){
+							if(num[i])
+								png_set_pixel(
+									rows,
+									y,
+									x+(img->pixel_size * i),
+									0,
+									img->pixel_size
+								);
+							else
+								png_set_pixel(
+									rows,
+									y,
+									x+(img->pixel_size * i),
+									255,
+									img->pixel_size
+								);
+						}
+						buf_ind++;
+						x += (img->pixel_size * 7);
+					}
+					else{
+						png_set_pixel(rows, y,x, 127, img->pixel_size);
+					}
 				}
 			}
 		}
-
-		for (int i = 0; i < img->pixel_size; ++i) {
-			png_write_row(png, row);
-		}
 	}
-
+	png_write_rows(png,rows,img->height);
 	png_write_end(png,NULL);
 
 	png_destroy_write_struct(&png, &info);
 	png_free_data(png,info,PNG_FREE_ALL,-1);
+
+	for(int i=0;i<img->height;i++){
+		free(rows[i]);
+	}
+	free(rows);
 
 	pthread_mutex_lock(&mutex);
 	fflush(png_output);
@@ -517,7 +814,6 @@ void *write_image(void *arg){
 	pthread_mutex_unlock(&mutex);
 
 	free(info);
-	free(row);
 	free(num);
 	free(buffer);
 
@@ -702,6 +998,8 @@ int encode(arg_s *args){
 			img[i]->width = args->width;
 			img[i]->pixel_size = args->pixel_size;
 			img[i]->input_file_path = args->input_file_path;
+			img[i]->reverse_x = args->reverse_x;
+			img[i]->reverse_y = args->reverse_y;
 
 			if(args->bmp){
 				img[i]->bmp = 1;
@@ -1300,45 +1598,187 @@ int decode(arg_s *args){
 				fprintf(stderr,"\rDecoding %s | %d%%",filenames[i],percent);
 			}
 
-			for(
-				int i = bmp->info_header->height - args->pixel_size;
-				i >= 0 && !eend;
-				i-=args->pixel_size
-			){
-				for(int j=0;j<bmp->info_header->width;j+=args->pixel_size){
-					res = bmp_get_pixel(
-								bmp->data,
-								padded_width,
-								i,j,
-								bmp->info_header->width,
-								args->pixel_size,
-								bmp->info_header->bits,
-								args->rmode
-							);
-					if(res == 127){
-						eend = 1;
-						break;
-					}
+			if(args->reverse_y){
+				for(
+					int i = 0;
+					i >= bmp->info_header->height && !eend;
+					i += args->pixel_size
+				){
+					if(args->reverse_x){
+						for(
+							int j = bmp->info_header->width - args->pixel_size;
+							j >= 0 ;
+							j -= args->pixel_size
+						){
+							res = bmp_get_pixel(
+										bmp->data,
+										padded_width,
+										i,j,
+										bmp->info_header->width,
+										args->pixel_size,
+										bmp->info_header->bits,
+										args->rmode
+									);
+							if(res == 127){
+								eend = 1;
+								break;
+							}
 
-					num[k] = res;
-					k++;
+							num[k] = res;
+							k++;
 
-					if(k>7){
-						lett = set_bin(num);
+							if(k>7){
+								lett = set_bin(num);
 
-						if(0 == fwrite(&lett,1,sizeof(unsigned char),out)){
+								if(0 == fwrite(&lett,1,sizeof(unsigned char),out)){
 
-							fprintf(stderr,
-								"Error writing byte to output file.\n");
+									fprintf(stderr,
+										"Error writing byte to output file.\n");
 
-							fclose(out);
-							destroy_bmp(bmp);
-							destroy_filenames(filenames,frame_count);
-							free(filenames);
-							free(num);
-							return -1;
+									fclose(out);
+									destroy_bmp(bmp);
+									destroy_filenames(filenames,frame_count);
+									free(filenames);
+									free(num);
+									return -1;
+								}
+								k=0;
+							}
 						}
-						k=0;
+					}
+					else{
+						for(
+							int j = 0;
+							j < bmp->info_header->width;
+							j += args->pixel_size
+						){
+							res = bmp_get_pixel(
+										bmp->data,
+										padded_width,
+										i,j,
+										bmp->info_header->width,
+										args->pixel_size,
+										bmp->info_header->bits,
+										args->rmode
+									);
+							if(res == 127){
+								eend = 1;
+								break;
+							}
+
+							num[k] = res;
+							k++;
+
+							if(k>7){
+								lett = set_bin(num);
+
+								if(0 == fwrite(&lett,1,sizeof(unsigned char),out)){
+
+									fprintf(stderr,
+										"Error writing byte to output file.\n");
+
+									fclose(out);
+									destroy_bmp(bmp);
+									destroy_filenames(filenames,frame_count);
+									free(filenames);
+									free(num);
+									return -1;
+								}
+								k=0;
+							}
+						}
+					}
+				}
+			}
+			else{
+				for(
+					int i = bmp->info_header->height - args->pixel_size;
+					i >= 0 && !eend;
+					i-=args->pixel_size
+				){
+					if(args->reverse_x){
+						for(
+							int j = bmp->info_header->width - args->pixel_size;
+							j >= 0 ;
+							j -= args->pixel_size
+						){
+							res = bmp_get_pixel(
+										bmp->data,
+										padded_width,
+										i,j,
+										bmp->info_header->width,
+										args->pixel_size,
+										bmp->info_header->bits,
+										args->rmode
+									);
+							if(res == 127){
+								eend = 1;
+								break;
+							}
+
+							num[k] = res;
+							k++;
+
+							if(k>7){
+								lett = set_bin(num);
+
+								if(0 == fwrite(&lett,1,sizeof(unsigned char),out)){
+
+									fprintf(stderr,
+										"Error writing byte to output file.\n");
+
+									fclose(out);
+									destroy_bmp(bmp);
+									destroy_filenames(filenames,frame_count);
+									free(filenames);
+									free(num);
+									return -1;
+								}
+								k=0;
+							}
+						}
+					}
+					else{
+						for(
+							int j = 0;
+							j < bmp->info_header->width;
+							j += args->pixel_size
+						){
+							res = bmp_get_pixel(
+										bmp->data,
+										padded_width,
+										i,j,
+										bmp->info_header->width,
+										args->pixel_size,
+										bmp->info_header->bits,
+										args->rmode
+									);
+							if(res == 127){
+								eend = 1;
+								break;
+							}
+
+							num[k] = res;
+							k++;
+
+							if(k>7){
+								lett = set_bin(num);
+
+								if(0 == fwrite(&lett,1,sizeof(unsigned char),out)){
+
+									fprintf(stderr,
+										"Error writing byte to output file.\n");
+
+									fclose(out);
+									destroy_bmp(bmp);
+									destroy_filenames(filenames,frame_count);
+									free(filenames);
+									free(num);
+									return -1;
+								}
+								k=0;
+							}
+						}
 					}
 				}
 			}
@@ -1472,42 +1912,179 @@ int decode(arg_s *args){
 			int res;
 			char lett;
 
-			for (int y = 0; y < height  && !eend; y+=args->pixel_size){
-				for (int x = 0; x < width  && !eend; x+=args->pixel_size){
+			if(args->reverse_y){
+				for(
+					int y = height - args->pixel_size;
+					y >= 0  && !eend;
+					y -= args->pixel_size
+				){
+					if(args->reverse_x){
+						for(
+							int x = width - args->pixel_size;
+							x >= 0  && !eend;
+							x -= args->pixel_size
+						){
+							res = png_get_pixel(
+									row_pointers,
+									x,y,
+									args->pixel_size,
+									args->rmode
+								);
 
-					res = png_get_pixel(
-							row_pointers,
-							x,y,
-							args->pixel_size,
-							args->rmode
-						);
+							if(res == 127){
+								eend = 1;
+								break;
+							}
 
-					if(res == 127){
-						eend = 1;
-						break;
-					}
+							num[k] = res;
+							k++;
 
-					num[k] = res;
-					k++;
+							if(k>7){
+								lett = set_bin(num);
+								if(0 == fwrite(&lett,1,sizeof(char),out)){
 
-					if(k>7){
-						lett = set_bin(num);
-						if(0 == fwrite(&lett,1,sizeof(char),out)){
+									fprintf(stderr,
+										"\nError writing byte to output file.\n");
 
-							fprintf(stderr,
-								"\nError writing byte to output file.\n");
-
-							fclose(out);
-							fclose(frame);
-							destroy_filenames(filenames,frame_count);
-							free(filenames);
-							free(num);
-							return -1;
+									fclose(out);
+									fclose(frame);
+									destroy_filenames(filenames,frame_count);
+									free(filenames);
+									free(num);
+									return -1;
+								}
+								k=0;
+							}
 						}
-						k=0;
+					}
+					else{
+						for(
+							int x = 0;
+							x < width  && !eend;
+							x += args->pixel_size
+						){
+							res = png_get_pixel(
+									row_pointers,
+									x,y,
+									args->pixel_size,
+									args->rmode
+								);
+
+							if(res == 127){
+								eend = 1;
+								break;
+							}
+
+							num[k] = res;
+							k++;
+
+							if(k>7){
+								lett = set_bin(num);
+								if(0 == fwrite(&lett,1,sizeof(char),out)){
+
+									fprintf(stderr,
+										"\nError writing byte to output file.\n");
+
+									fclose(out);
+									fclose(frame);
+									destroy_filenames(filenames,frame_count);
+									free(filenames);
+									free(num);
+									return -1;
+								}
+								k=0;
+							}
+						}
 					}
 				}
 			}
+			else{
+				for(
+					int y = 0;
+					y < height  && !eend;
+					y += args->pixel_size
+				){
+					if(args->reverse_x){
+						for(
+							int x = width - args->pixel_size;
+							x >= 0  && !eend;
+							x -= args->pixel_size
+						){
+							res = png_get_pixel(
+									row_pointers,
+									x,y,
+									args->pixel_size,
+									args->rmode
+								);
+
+							if(res == 127){
+								eend = 1;
+								break;
+							}
+
+							num[k] = res;
+							k++;
+
+							if(k>7){
+								lett = set_bin(num);
+								if(0 == fwrite(&lett,1,sizeof(char),out)){
+
+									fprintf(stderr,
+										"\nError writing byte to output file.\n");
+
+									fclose(out);
+									fclose(frame);
+									destroy_filenames(filenames,frame_count);
+									free(filenames);
+									free(num);
+									return -1;
+								}
+								k=0;
+							}
+						}
+					}
+					else{
+						for(
+							int x = 0;
+							x < width  && !eend;
+							x += args->pixel_size
+						){
+							res = png_get_pixel(
+									row_pointers,
+									x,y,
+									args->pixel_size,
+									args->rmode
+								);
+
+							if(res == 127){
+								eend = 1;
+								break;
+							}
+
+							num[k] = res;
+							k++;
+
+							if(k>7){
+								lett = set_bin(num);
+								if(0 == fwrite(&lett,1,sizeof(char),out)){
+
+									fprintf(stderr,
+										"\nError writing byte to output file.\n");
+
+									fclose(out);
+									fclose(frame);
+									destroy_filenames(filenames,frame_count);
+									free(filenames);
+									free(num);
+									return -1;
+								}
+								k=0;
+							}
+						}
+					}
+				}
+			}
+
 			png_destroy_read_struct(&png, &info,NULL);
 			png_free_data(png,info,PNG_FREE_ALL,-1);
 
@@ -1584,34 +2161,25 @@ int main(int argc, char *argv[]){
 		}
 #ifdef __WIN32
 		if(0 == check_ffmpeg()){
+			fprintf(stderr,"Error. '%s' not found.\n",FFMPEG_EXE_PATH);
+		}
 #else
 		if(0 == check_ffmpeg(args.ffmpeg_path)){
-
 			if(!args.quiet)
 				printf(
 					"Found FFMPEG binary at: %s\n",
 					args.ffmpeg_path
 				);
-#endif
 		}
 		else{
-
-#ifdef __WIN32
-			fprintf(stderr,"Error. '%s' not found.\n",FFMPEG_EXE_PATH);
-#else
 			fprintf(stderr,"\nFFMPEG not found on your system.\n");
 			fprintf(stderr,"Please install it and retry.\n");
-#endif
-			return 1;
 		}
+#endif
 	}
 
-	if(args.operation)
-		decode(&args);
-
-	else
-		encode(&args);
-
+	if(args.operation) decode(&args);
+	else encode(&args);
 	destroy_args(&args);
 
 	return 0;
