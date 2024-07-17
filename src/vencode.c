@@ -1006,9 +1006,16 @@ int encode(arg_s *args){
 			img[i]->width = args->width;
 			img[i]->pixel_size = args->pixel_size;
 			img[i]->input_file_path = args->input_file_path;
-			img[i]->reverse_x = args->reverse_x;
-			img[i]->reverse_y = args->reverse_y;
-			img[i]->invert_bit = args->invert_bit;
+			if(!(frame_index%2) && args->odd_mode){
+				img[i]->reverse_x = 1;
+				img[i]->reverse_y = 1;
+				img[i]->invert_bit = 1;
+			}
+			else{
+				img[i]->reverse_x = args->reverse_x;
+				img[i]->reverse_y = args->reverse_y;
+				img[i]->invert_bit = args->invert_bit;
+			}
 
 			if(args->bmp){
 				img[i]->bmp = 1;
@@ -1587,10 +1594,31 @@ int decode(arg_s *args){
 
 	int percent;
 
+	_Bool reverse_x = 0;
+	_Bool reverse_y = 0;
+	_Bool invert_bit = 0;
+
 	if(args->bmp){
 		bmp_t *bmp;
 		unsigned char lett;
 		for(int i=0;i<frame_count;i++){
+			if(args->odd_mode){
+				if(!(i%2)){
+					reverse_x = 1;
+					reverse_y = 1;
+					invert_bit = 1;
+				}
+				else{
+					reverse_x = 0;
+					reverse_y = 0;
+					invert_bit = 0;
+				}
+			}
+			else{
+				if(args->invert_bit) invert_bit = 1;
+				if(args->reverse_x) reverse_x = 1;
+				if(args->reverse_y) reverse_y = 1;
+			}
 			bmp = bmp_read(filenames[i]);
 			int padded_width = bmp_round4(bmp->info_header->width);
 			int k = 0;
@@ -1607,13 +1635,13 @@ int decode(arg_s *args){
 				fprintf(stderr,"\rDecoding %s | %d%%",filenames[i],percent);
 			}
 
-			if(args->reverse_y){
+			if(reverse_y){
 				for(
 					int i = 0;
 					i >= bmp->info_header->height && !eend;
 					i += args->pixel_size
 				){
-					if(args->reverse_x){
+					if(reverse_x){
 						for(
 							int j = bmp->info_header->width - args->pixel_size;
 							j >= 0 ;
@@ -1637,7 +1665,7 @@ int decode(arg_s *args){
 							k++;
 
 							if(k>7){
-								lett = set_bin(num,args->invert_bit);
+								lett = set_bin(num,invert_bit);
 
 								if(0 == fwrite(&lett,1,sizeof(unsigned char),out)){
 
@@ -1679,7 +1707,7 @@ int decode(arg_s *args){
 							k++;
 
 							if(k>7){
-								lett = set_bin(num,args->invert_bit);
+								lett = set_bin(num,invert_bit);
 
 								if(0 == fwrite(&lett,1,sizeof(unsigned char),out)){
 
@@ -1705,7 +1733,7 @@ int decode(arg_s *args){
 					i >= 0 && !eend;
 					i-=args->pixel_size
 				){
-					if(args->reverse_x){
+					if(reverse_x){
 						for(
 							int j = bmp->info_header->width - args->pixel_size;
 							j >= 0 ;
@@ -1729,7 +1757,7 @@ int decode(arg_s *args){
 							k++;
 
 							if(k>7){
-								lett = set_bin(num,args->invert_bit);
+								lett = set_bin(num,invert_bit);
 
 								if(0 == fwrite(&lett,1,sizeof(unsigned char),out)){
 
@@ -1771,7 +1799,7 @@ int decode(arg_s *args){
 							k++;
 
 							if(k>7){
-								lett = set_bin(num,args->invert_bit);
+								lett = set_bin(num,invert_bit);
 
 								if(0 == fwrite(&lett,1,sizeof(unsigned char),out)){
 
@@ -1802,6 +1830,23 @@ int decode(arg_s *args){
 		int eend = 0;
 
 		for(int i=0;i<frame_count && !eend;i++){
+			if(args->odd_mode){
+				if(!(i%2)){
+					reverse_x = 1;
+					reverse_y = 1;
+					invert_bit = 1;
+				}
+				else{
+					reverse_x = 0;
+					reverse_y = 0;
+					invert_bit = 0;
+				}
+			}
+			else{
+				if(args->invert_bit) invert_bit = 1;
+				if(args->reverse_x) reverse_x = 1;
+				if(args->reverse_y) reverse_y = 1;
+			}
 
 			if(!args->noprogress){
 				if(frame_count > 1){
@@ -1921,13 +1966,13 @@ int decode(arg_s *args){
 			int res;
 			char lett;
 
-			if(args->reverse_y){
+			if(reverse_y){
 				for(
 					int y = height - args->pixel_size;
 					y >= 0  && !eend;
 					y -= args->pixel_size
 				){
-					if(args->reverse_x){
+					if(reverse_x){
 						for(
 							int x = width - args->pixel_size;
 							x >= 0  && !eend;
@@ -1949,7 +1994,7 @@ int decode(arg_s *args){
 							k++;
 
 							if(k>7){
-								lett = set_bin(num,args->invert_bit);
+								lett = set_bin(num,invert_bit);
 								if(0 == fwrite(&lett,1,sizeof(char),out)){
 
 									fprintf(stderr,
@@ -1988,7 +2033,7 @@ int decode(arg_s *args){
 							k++;
 
 							if(k>7){
-								lett = set_bin(num,args->invert_bit);
+								lett = set_bin(num,invert_bit);
 								if(0 == fwrite(&lett,1,sizeof(char),out)){
 
 									fprintf(stderr,
@@ -2013,7 +2058,7 @@ int decode(arg_s *args){
 					y < height  && !eend;
 					y += args->pixel_size
 				){
-					if(args->reverse_x){
+					if(reverse_x){
 						for(
 							int x = width - args->pixel_size;
 							x >= 0  && !eend;
@@ -2035,7 +2080,7 @@ int decode(arg_s *args){
 							k++;
 
 							if(k>7){
-								lett = set_bin(num,args->invert_bit);
+								lett = set_bin(num,invert_bit);
 								if(0 == fwrite(&lett,1,sizeof(char),out)){
 
 									fprintf(stderr,
@@ -2074,7 +2119,7 @@ int decode(arg_s *args){
 							k++;
 
 							if(k>7){
-								lett = set_bin(num,args->invert_bit);
+								lett = set_bin(num,invert_bit);
 								if(0 == fwrite(&lett,1,sizeof(char),out)){
 
 									fprintf(stderr,
