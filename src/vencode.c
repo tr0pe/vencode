@@ -38,17 +38,24 @@
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-void get_bin(char c, _Bool *num){
-	for (int i = 0; i < 8; i++){
+void get_bin(char c, _Bool *num, _Bool invert_bit){
+	for(int i = 0; i < 8; i++){
 		num[i] = (c >> (7 - i)) & 1;
+		if(invert_bit){
+			if(num[i]) num[i] = 0;
+			else num[i] = 1;
+		}
 	}
 }
 
-char set_bin(_Bool *num){
+char set_bin(_Bool *num, _Bool invert_bit){
 	char byte = 0;
-
 	for(int i=0;i<8;i++){
 		if(i != 0) byte <<= 1;
+		if(invert_bit){
+			if(num[i]) num[i] = 0;
+			else num[i] = 1;
+		}
 		byte |= num[i];
 	}
 	return byte;
@@ -207,6 +214,7 @@ typedef struct{
 	int bmp;
 	_Bool reverse_x;
 	_Bool reverse_y;
+	_Bool invert_bit;
 }wr_img_s;
 
 void destroy_wr_img(wr_img_s *img){
@@ -352,7 +360,7 @@ void *write_image(void *arg){
 						if(buf_ind < img->sz){
 							c = buffer[buffer_index];
 							buffer_index++;
-							get_bin(c, num);
+							get_bin(c, num, img->invert_bit);
 
 							for(int i=0;i<8;i++){
 								if(num[i]){
@@ -400,7 +408,7 @@ void *write_image(void *arg){
 						if(buf_ind < img->sz){
 							c = buffer[buffer_index];
 							buffer_index++;
-							get_bin(c, num);
+							get_bin(c, num, img->invert_bit);
 
 							for(int i=0;i<8;i++){
 								if(num[i]){
@@ -456,7 +464,7 @@ void *write_image(void *arg){
 						if(buf_ind < img->sz){
 							c = buffer[buffer_index];
 							buffer_index++;
-							get_bin(c, num);
+							get_bin(c, num, img->invert_bit);
 
 							for(int i=0;i<8;i++){
 								if(num[i]){
@@ -504,7 +512,7 @@ void *write_image(void *arg){
 						if(buf_ind < img->sz){
 							c = buffer[buffer_index];
 							buffer_index++;
-							get_bin(c, num);
+							get_bin(c, num, img->invert_bit);
 
 							for(int i=0;i<8;i++){
 								if(num[i]){
@@ -652,7 +660,7 @@ void *write_image(void *arg){
 					if(buf_ind < img->sz){
 						c = buffer[buffer_index];
 						buffer_index++;
-						get_bin(c, num);
+						get_bin(c, num, img->invert_bit);
 						for(int i=0;i<8;i++){
 							if(num[i])
 								png_set_pixel(
@@ -688,7 +696,7 @@ void *write_image(void *arg){
 					if(buf_ind < img->sz){
 						c = buffer[buffer_index];
 						buffer_index++;
-						get_bin(c, num);
+						get_bin(c, num, img->invert_bit);
 						for(int i=0;i<8;i++){
 							if(num[i])
 								png_set_pixel(
@@ -732,7 +740,7 @@ void *write_image(void *arg){
 					if(buf_ind < img->sz){
 						c = buffer[buffer_index];
 						buffer_index++;
-						get_bin(c, num);
+						get_bin(c, num, img->invert_bit);
 						for(int i=0;i<8;i++){
 							if(num[i])
 								png_set_pixel(
@@ -768,7 +776,7 @@ void *write_image(void *arg){
 					if(buf_ind < img->sz){
 						c = buffer[buffer_index];
 						buffer_index++;
-						get_bin(c, num);
+						get_bin(c, num, img->invert_bit);
 						for(int i=0;i<8;i++){
 							if(num[i])
 								png_set_pixel(
@@ -1000,6 +1008,7 @@ int encode(arg_s *args){
 			img[i]->input_file_path = args->input_file_path;
 			img[i]->reverse_x = args->reverse_x;
 			img[i]->reverse_y = args->reverse_y;
+			img[i]->invert_bit = args->invert_bit;
 
 			if(args->bmp){
 				img[i]->bmp = 1;
@@ -1628,7 +1637,7 @@ int decode(arg_s *args){
 							k++;
 
 							if(k>7){
-								lett = set_bin(num);
+								lett = set_bin(num,args->invert_bit);
 
 								if(0 == fwrite(&lett,1,sizeof(unsigned char),out)){
 
@@ -1670,7 +1679,7 @@ int decode(arg_s *args){
 							k++;
 
 							if(k>7){
-								lett = set_bin(num);
+								lett = set_bin(num,args->invert_bit);
 
 								if(0 == fwrite(&lett,1,sizeof(unsigned char),out)){
 
@@ -1720,7 +1729,7 @@ int decode(arg_s *args){
 							k++;
 
 							if(k>7){
-								lett = set_bin(num);
+								lett = set_bin(num,args->invert_bit);
 
 								if(0 == fwrite(&lett,1,sizeof(unsigned char),out)){
 
@@ -1762,7 +1771,7 @@ int decode(arg_s *args){
 							k++;
 
 							if(k>7){
-								lett = set_bin(num);
+								lett = set_bin(num,args->invert_bit);
 
 								if(0 == fwrite(&lett,1,sizeof(unsigned char),out)){
 
@@ -1940,7 +1949,7 @@ int decode(arg_s *args){
 							k++;
 
 							if(k>7){
-								lett = set_bin(num);
+								lett = set_bin(num,args->invert_bit);
 								if(0 == fwrite(&lett,1,sizeof(char),out)){
 
 									fprintf(stderr,
@@ -1979,7 +1988,7 @@ int decode(arg_s *args){
 							k++;
 
 							if(k>7){
-								lett = set_bin(num);
+								lett = set_bin(num,args->invert_bit);
 								if(0 == fwrite(&lett,1,sizeof(char),out)){
 
 									fprintf(stderr,
@@ -2026,7 +2035,7 @@ int decode(arg_s *args){
 							k++;
 
 							if(k>7){
-								lett = set_bin(num);
+								lett = set_bin(num,args->invert_bit);
 								if(0 == fwrite(&lett,1,sizeof(char),out)){
 
 									fprintf(stderr,
@@ -2065,7 +2074,7 @@ int decode(arg_s *args){
 							k++;
 
 							if(k>7){
-								lett = set_bin(num);
+								lett = set_bin(num,args->invert_bit);
 								if(0 == fwrite(&lett,1,sizeof(char),out)){
 
 									fprintf(stderr,

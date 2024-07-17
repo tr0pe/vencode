@@ -23,6 +23,7 @@ typedef struct{
 	_Bool noprogress;
 	_Bool reverse_x;
 	_Bool reverse_y;
+	_Bool invert_bit;
 }arg_s;
 
 int getopts(arg_s *args, int argc, char *argv[]);

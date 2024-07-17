@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define __VERSION "1.2.4"
+#define __VERSION "1.3.0"
 
 typedef struct{
 	unsigned int width;
@@ -26,6 +26,7 @@ typedef struct{
 	_Bool noprogress;
 	_Bool reverse_x;
 	_Bool reverse_y;
+	_Bool invert_bit;
 }arg_s;
 
 void print_help(char *argv0){
@@ -105,8 +106,12 @@ void print_help(char *argv0){
 	printf("                                     (accurate)\n");
 	printf("                                Default value: 2.\n\n");
 
-	printf(" -y                             Reverse Y axis\n\n");
-	printf(" -Y                             Reverse X axis\n\n");
+	printf(" -y                             Reverse X axis\n\n");
+	printf(" -Y                             Reverse Y axis\n\n");
+
+	printf(" -w                             Invert bit color\n");
+	printf("                                  Black: 0\n");
+	printf("                                  White: 1\n\n");
 
 	printf(" -n                             Disable confirm/replace prompts.\n\n");
 	printf(" -q                             Disable warning messages.\n\n");
@@ -140,6 +145,7 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	_Bool aarg = 0;
 	_Bool yarg = 0;
 	_Bool Yarg = 0;
+	_Bool warg = 0;
 
 	short rXcount = 0;
 
@@ -470,19 +476,26 @@ int getopts(arg_s *args, int argc, char *argv[]){
 			}
 			Qarg = 1;
 		}
-		else if(!strcmp(argv[i],"-y")){//disable progress message
+		else if(!strcmp(argv[i],"-y")){//invert X axis
 			if(yarg){
 				fprintf(stderr,"Duplicated reverse X axis argument.\n");
 				return 1;
 			}
 			yarg = 1;
 		}
-		else if(!strcmp(argv[i],"-Y")){//disable progress message
+		else if(!strcmp(argv[i],"-Y")){//invert Y axis
 			if(Yarg){
 				fprintf(stderr,"Duplicated reverse Y axis argument.\n");
 				return 1;
 			}
 			Yarg = 1;
+		}
+		else if(!strcmp(argv[i],"-w")){//invert color
+			if(warg){
+				fprintf(stderr,"Duplicated invert bit color argument.\n");
+				return 1;
+			}
+			warg = 1;
 		}
 		else if(!strcmp(argv[i],"-h")){// help
 			print_help(argv[0]);
@@ -703,10 +716,16 @@ int getopts(arg_s *args, int argc, char *argv[]){
 		args->reverse_y = 0;
 	}
 	if(Yarg){
-		args->reverse_x = 1;
+		args->reverse_y = 1;
 	}
 	else{
-		args->reverse_x = 0;
+		args->reverse_y = 0;
+	}
+	if(warg){
+		args->invert_bit = 1;
+	}
+	else{
+		args->invert_bit = 0;
 	}
 	return 0;
 }
