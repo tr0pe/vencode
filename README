@@ -106,7 +106,6 @@ V1.2.4
 
     If you want to save space, use the '-c libx265' option without the '-z'
     argument, the file size will be more lightweight, (maybe 4-5 times more
-    larger than original file), and do the process without BMP (-b option).
-    If you do that, the process will be slower.
+    larger than original file). If you do that, the process will be slower.
 
 

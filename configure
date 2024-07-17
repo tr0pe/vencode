@@ -34,7 +34,7 @@ get_libs(){
 }
 gen_makefile(){
 	printf "CC\t=\t$1\n"
-	printf "CFLAGS\t=\t$2 -Iinclude -O3\n"
+	printf "CFLAGS\t=\t$2 -Iinclude -O3 -Wall\n"
 	printf "LIBS\t=\t$3 -lpthread\n"
 	printf 'TARGET\t=\tvencode\n'
 	printf 'OBJDIR\t=\tobj\n'
