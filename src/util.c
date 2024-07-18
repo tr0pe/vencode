@@ -89,7 +89,9 @@ char getch_(int echo){
 int compat(const void *a, const void *b){
 	return strcmp(*(const char **)a,*(const char **)b);
 }
-
+int compat_reverse(const void *a, const void *b){
+	return strcmp(*(const char **)b,*(const char **)a);
+}
 void destroy_filenames(char **filenames,int count){
 	count++;
 	for(int i=0;i<count;i++){

@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define __VERSION "1.3.1"
+#define __VERSION "1.3.2"
 
 typedef struct{
 	unsigned int width;
@@ -28,6 +28,7 @@ typedef struct{
 	_Bool reverse_y;
 	_Bool invert_bit;
 	_Bool odd;
+	_Bool invert_frames;
 }arg_s;
 
 void print_help(char *argv0){
@@ -117,6 +118,8 @@ void print_help(char *argv0){
 	printf(" -u                             Odd mode: Invert bit order and color\n");
 	printf("                                for odd frames\n\n");
 
+	printf(" -j                             Invert frame order\n\n");
+
 	printf(" -n                             Disable confirm/replace prompts.\n\n");
 	printf(" -q                             Disable warning messages.\n\n");
 	printf(" -Q                             Disable progress messages.\n\n");
@@ -151,6 +154,7 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	_Bool Yarg = 0;
 	_Bool warg = 0;
 	_Bool uarg = 0;
+	_Bool jarg = 0;
 
 	short rXcount = 0;
 
@@ -509,6 +513,13 @@ int getopts(arg_s *args, int argc, char *argv[]){
 			}
 			uarg = 1;
 		}
+		else if(!strcmp(argv[i],"-j")){//invert frame order
+			if(jarg){
+				fprintf(stderr,"Duplicated invert frame order argument.\n");
+				return 1;
+			}
+			jarg = 1;
+		}
 		else if(!strcmp(argv[i],"-h")){// help
 			print_help(argv[0]);
 			return -1;
@@ -744,6 +755,12 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	}
 	else{
 		args->odd = 0;
+	}
+	if(jarg){
+		args->invert_frames = 1;
+	}
+	else{
+		args->invert_frames = 0;
 	}
 	return 0;
 }

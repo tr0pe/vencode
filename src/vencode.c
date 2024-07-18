@@ -897,8 +897,6 @@ int encode(arg_s *args){
 		getchar();
 	}
 
-	unsigned int frame_index;
-
 	int percent;
 
 	int pid = getpid();
@@ -916,7 +914,6 @@ int encode(arg_s *args){
 
 	wr_img_s *img[args->threads];
 
-	frame_index = 0;
 	int th_ind;
 
 	if(img_quant == 1){
@@ -938,6 +935,7 @@ int encode(arg_s *args){
 		fprintf(stderr,"Writing images...\n");
 	}
 
+	unsigned int frame_index = 0;
 	while(frame_index < img_quant){
 		th_ind = 0;
 		for(int i=0;i<args->threads && frame_index < img_quant;i++){
@@ -974,19 +972,34 @@ int encode(arg_s *args){
 				return -1;
 			}
 
-			if( -1 == img_index(img[i]->filename,frame_index,pid,ext)){
-				fprintf(stderr,"error\n");
-				fclose(input);
+			if(args->invert_frames){
+				if( -1 == img_index(img[i]->filename,img_quant - frame_index - 1,pid,ext)){
+					fprintf(stderr,"error\n");
+					fclose(input);
 
-				for(int i=0;i<args->threads;i++){
-					destroy_wr_img(img[i]);
-					if(img[i] != NULL){
-						free(img[i]);
+					for(int i=0;i<args->threads;i++){
+						destroy_wr_img(img[i]);
+						if(img[i] != NULL){
+							free(img[i]);
+						}
 					}
+					return -1;
 				}
-				return -1;
 			}
+			else{
+				if( -1 == img_index(img[i]->filename,frame_index,pid,ext)){
+					fprintf(stderr,"error\n");
+					fclose(input);
 
+					for(int i=0;i<args->threads;i++){
+						destroy_wr_img(img[i]);
+						if(img[i] != NULL){
+							free(img[i]);
+						}
+					}
+					return -1;
+				}
+			}
 			if(!args->noprogress){
 				if(img_quant > 1){
 					percent = (100*frame_index)/(img_quant-1);
@@ -1037,7 +1050,6 @@ int encode(arg_s *args){
 				fclose(input);
 				return -1;
 			}
-
 			frame_index++;
 			th_ind++;
 		}
@@ -1065,6 +1077,7 @@ int encode(arg_s *args){
 			}
 		}
 	}
+
 	fprintf(stderr,"\n");
 	fclose(input);
 
@@ -1562,7 +1575,10 @@ int decode(arg_s *args){
 		return -1;
 	}
 
-	qsort(filenames,frame_count,sizeof(char *),compat);
+	if(args->invert_frames)
+		qsort(filenames,frame_count,sizeof(char *),compat_reverse);
+	else
+		qsort(filenames,frame_count,sizeof(char *),compat);
 
 	int aprox_size;
 	aprox_size = (args->width*args->height*frame_count)/

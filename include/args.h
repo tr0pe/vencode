@@ -25,6 +25,7 @@ typedef struct{
 	_Bool reverse_y;
 	_Bool invert_bit;
 	_Bool odd_mode;
+	_Bool invert_frames;
 }arg_s;
 
 int getopts(arg_s *args, int argc, char *argv[]);
