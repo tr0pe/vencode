@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define __VERSION "2.0.0"
+#define __VERSION "1.3.4"
 char *default_codec = "libx265";
 
 typedef struct{
@@ -552,7 +552,7 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	args->threads = threads;
 	args->framerate = framerate;
 	args->reverse_y = yarg;
-	args->reverse_y = Yarg;
+	args->reverse_x = Yarg;
 	args->invert_color = warg;
 	args->odd = uarg;
 	args->invert_frames = jarg;
@@ -562,6 +562,7 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	args->output_file_path = argv[out_file_arg_pos];
 	args->width  = 1280;
 	args->height = 720;
+	args->ffmpeg_path = NULL;
 
 	if(!earg && !darg){
 		fprintf(
