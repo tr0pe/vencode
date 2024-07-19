@@ -2,7 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define __VERSION "1.3.3"
+#define __VERSION "2.0.0"
+char *default_codec = "libx265";
 
 typedef struct{
 	unsigned int width;
@@ -136,7 +137,6 @@ void print_help(char *argv0){
 int getopts(arg_s *args, int argc, char *argv[]){
 	char height[8];
 	char  width[8];
-
 	_Bool rarg = 0;
 	_Bool targ = 0;
 	_Bool parg = 0;
@@ -159,25 +159,15 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	_Bool uarg = 0;
 	_Bool jarg = 0;
 	_Bool garg = 0;
-
 	short rXcount = 0;
-
-	int j;
-	int k;
-	int l;
-
-	int threads = 1;
-	int pixel_size = 1;
-
-	int in_file_arg_pos = 0;
-	int out_file_arg_pos = 0;
-
-	int codec_arg_pos = 0;
-	int codec_arg_len = 0;
-
-	int framerate = 0;
-
-	int am = 0;
+	short threads = 1;
+	short pixel_size = 4;
+	short in_file_arg_pos = 0;
+	short out_file_arg_pos = 0;
+	short codec_arg_pos = 0;
+	short framerate = 30;
+	short am = 2;
+	short j,k,l;
 
 	for(int i=1; i<argc; i++){
 		if(!strcmp(argv[i],"-e")){ //encode argument
@@ -256,8 +246,11 @@ int getopts(arg_s *args, int argc, char *argv[]){
 					argv[i+1][0] == 'x' ||
 					argv[i+1][strlen(argv[i+1])-1] == 'x'){
 
-					fprintf(stderr,"%s: Invalid resolution argument.\n",
-																argv[i+1]);
+					fprintf(
+						stderr,
+						"%s: Invalid resolution argument.\n",
+						argv[i+1]
+					);
 
 					return 1;
 				}
@@ -278,9 +271,11 @@ int getopts(arg_s *args, int argc, char *argv[]){
 				}
 
 				else{
-					fprintf(stderr,"%s: Invalid resolution argument.\n",
-																argv[i+1]);
-
+					fprintf(
+						stderr,
+						"%s: Invalid resolution argument.\n",
+						argv[i+1]
+					);
 					return 1;
 				}
 				j++;
@@ -430,7 +425,6 @@ int getopts(arg_s *args, int argc, char *argv[]){
 			aarg = 1;
 			i++;
 		}
-
 		else if(!strcmp(argv[i],"-c")){ //codec chooser
 			if(carg){
 				fprintf(stderr,"Duplicated codec argument.\n");
@@ -544,14 +538,30 @@ int getopts(arg_s *args, int argc, char *argv[]){
 
 			return 1;
 		}
+	}
 
-	}
-	if(qarg){
-		args->quiet = 1;
-	}
-	else{
-		args->quiet = 0;
-	}
+	args->operation = 0;
+	args->keep_frames = karg;
+	args->noprogress = Qarg;
+	args->noconfirm = narg;
+	args->quiet = qarg;
+	args->ultrafast = zarg;
+	args->skip_ffmpeg = sarg;
+	args->bmp = barg;
+	args->pixel_size = pixel_size;
+	args->threads = threads;
+	args->framerate = framerate;
+	args->reverse_y = yarg;
+	args->reverse_y = Yarg;
+	args->invert_color = warg;
+	args->odd = uarg;
+	args->invert_frames = jarg;
+	args->invert_byte = garg;
+	args->rmode = am;
+	args->input_file_path  = argv[in_file_arg_pos];
+	args->output_file_path = argv[out_file_arg_pos];
+	args->width  = 1280;
+	args->height = 720;
 
 	if(!earg && !darg){
 		fprintf(
@@ -559,30 +569,15 @@ int getopts(arg_s *args, int argc, char *argv[]){
 			"Missing operation option.\nrun '%s -h' for help.\n"
 			,argv[0]
 		);
-
 		return 1;
-	} 
+	}
 	if(!oarg && !sarg){
 		fprintf(stderr,
-			"Missing output file path.\nrun '%s -h' for help.\n",argv[0]);
-
+			"Missing output file path.\nrun '%s -h' for help.\n",
+			argv[0]
+		);
 		return 1;
 	}
-
-	if(karg){
-		args->keep_frames = 1;
-	}
-	else{
-		args->keep_frames = 0;
-	}
-
-	if(Qarg){
-		args->noprogress = 1;
-	}
-	else{
-		args->noprogress = 0;
-	}
-
 	if(rarg){
 		if(strlen(width) > 6 || strlen(height) > 6){
 			fprintf(stderr,"Resolution value is very big!\n");
@@ -597,100 +592,27 @@ int getopts(arg_s *args, int argc, char *argv[]){
 			return 1;
 		}
 	}
-
-	else{
-		if(!qarg && earg){
-			fprintf(stderr,"No resolution size has been provided.");
-			fprintf(stderr,"Using default value (1920x720)\n");
-		}
-		args->width  = 1280;
-		args->height = 720;
-	}
-
-	args->noconfirm = narg;
-
-	if(parg){
-		args->pixel_size = pixel_size;
-	}
-	else{
-		if(!qarg){
-			fprintf(stderr,
-				"No pixel size has been provided. Using default value (4)\n");
-		}
-		args->pixel_size = 4;
-	}
-
 	if(earg){
 		args->operation = 0;
-
 		if(carg){
-			codec_arg_len = 1 + strlen(argv[codec_arg_pos]);
-			args->codec = (char *)malloc(sizeof(char) * codec_arg_len);
-			if(args->codec == NULL){
-				fprintf(stderr,"Error allocating memory for codec name.\n");
-				free(args->input_file_path);
-				free(args->output_file_path);
-				return 1;
-			}
-			strcpy(args->codec,argv[codec_arg_pos]);
+			args->codec = argv[codec_arg_pos];
 		}
 		else{
 			if(!qarg){
-				fprintf(stderr,
-					"No codec name been provided. Using default (libx265)\n");
+				fprintf(
+					stderr,
+					"No codec name been provided. Using default (libx265)\n"
+				);
 			}
-			args->codec = (char *)malloc(sizeof(char) * 9);
-			if(args->codec == NULL){
-				fprintf(stderr,"Error allocating memory for codec name.\n");
-				free(args->input_file_path);
-				free(args->output_file_path);
-				return 1;
-			}
-			strcpy(args->codec,"libx265");
+			args->codec = default_codec;
 		}
-
-		if(zarg)
-			args->ultrafast = 1;
-		else
-			args->ultrafast = 0;
-
-		if(targ){
-			args->threads = threads;
-		}
-
-		else{
-			if(!qarg){
-				fprintf(stderr,"No threads number has been provided. Using default value (1)\n");
-			}
-			args->threads = 1;
-		}
-		if(farg){
-			args->framerate = framerate;
-		}
-		else{
-			args->framerate = 30;
-			if(!qarg){
-				fprintf(stderr,"No frame rate has been provided. Using default value (30)\n");
-			}
-		}
-		if(sarg){
-			args->skip_ffmpeg = 1;
-
-			if(carg && !qarg){
-				fprintf(stderr,"-c will be ignored. FFMPEG process skipped.\n");
-			}
-			if(farg && !qarg){
-				fprintf(stderr,"-f will be ignored. FFMPEG process skipped.\n");
-			}
-			if(zarg && !qarg){
-				fprintf(stderr,"-z will be ignored. FFMPEG process skipped.\n");
-			}
-		}
-		else{
-			args->skip_ffmpeg = 0;
+		if(aarg){
+			fprintf(
+				stderr,
+				"-a is only available with -d (video to file). Ignoring.\n"
+			);
 		}
 	}
-
 	if(darg){
 		args->operation = 1;
 		if(!qarg){
@@ -717,80 +639,21 @@ int getopts(arg_s *args, int argc, char *argv[]){
 		}
 		args->codec = NULL;
 	}
-	else{
-		if(aarg){
-			fprintf(stderr,"-a argument is only available with -d (video to file). Ignoring.\n");
-		}
-	}
-	if(barg){
-		args->bmp = 1;
-	}
-	else{
-		args->bmp = 0;
-	}
-
 	if(earg && sarg && oarg && !qarg){
 		fprintf(stderr,"-o will be ignored, FFMPEG process skipped.\n");
 	}
-
-	args->input_file_path  = argv[in_file_arg_pos];
-	args->output_file_path = argv[out_file_arg_pos];
-
 	if(pixel_size > args->width || pixel_size > args->height){
 		fprintf(stderr,"Error: Pixel size is higher than width-height\n");
 		return 1;
 	}
-	if(aarg){
-		args->rmode = am;
-	}
-	if(yarg){
-		args->reverse_y = 1;
-	}
-	else{
-		args->reverse_y = 0;
-	}
-	if(Yarg){
-		args->reverse_y = 1;
-	}
-	else{
-		args->reverse_y = 0;
-	}
-	if(warg){
-		args->invert_color = 1;
-	}
-	else{
-		args->invert_color = 0;
-	}
-	if(uarg){
-		args->odd = 1;
-	}
-	else{
-		args->odd = 0;
-	}
-	if(jarg){
-		args->invert_frames = 1;
-	}
-	else{
-		args->invert_frames = 0;
-	}
-	if(garg){
-		args->invert_byte = 1;
-	}
-	else{
-		args->invert_byte = 0;
-	}
 	return 0;
 }
 
+#ifndef __WIN32
 void destroy_args(arg_s *args){
-	if(args->codec != NULL){
-		free(args->codec);
-		args->codec = NULL;
-	}
-	#ifndef __WIN32
 	if(args->ffmpeg_path != NULL){
 		free(args->ffmpeg_path);
 		args->ffmpeg_path = NULL;
 	}
-	#endif
 }
+#endif
