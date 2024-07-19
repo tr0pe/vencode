@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define __VERSION "1.3.2"
+#define __VERSION "1.3.3"
 
 typedef struct{
 	unsigned int width;
@@ -26,9 +26,10 @@ typedef struct{
 	_Bool noprogress;
 	_Bool reverse_x;
 	_Bool reverse_y;
-	_Bool invert_bit;
+	_Bool invert_color;
 	_Bool odd;
 	_Bool invert_frames;
+	_Bool invert_byte;
 }arg_s;
 
 void print_help(char *argv0){
@@ -115,7 +116,9 @@ void print_help(char *argv0){
 	printf("                                  Black: 0\n");
 	printf("                                  White: 1\n\n");
 
-	printf(" -u                             Odd mode: Invert bit order and color\n");
+	printf(" -g                             Invert bit order\n\n");
+
+	printf(" -u                             Odd mode: Invert byte order and color\n");
 	printf("                                for odd frames\n\n");
 
 	printf(" -j                             Invert frame order\n\n");
@@ -155,6 +158,7 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	_Bool warg = 0;
 	_Bool uarg = 0;
 	_Bool jarg = 0;
+	_Bool garg = 0;
 
 	short rXcount = 0;
 
@@ -520,6 +524,13 @@ int getopts(arg_s *args, int argc, char *argv[]){
 			}
 			jarg = 1;
 		}
+		else if(!strcmp(argv[i],"-g")){//invert bit order
+			if(garg){
+				fprintf(stderr,"Duplicated invert bit order argument.\n");
+				return 1;
+			}
+			garg = 1;
+		}
 		else if(!strcmp(argv[i],"-h")){// help
 			print_help(argv[0]);
 			return -1;
@@ -745,10 +756,10 @@ int getopts(arg_s *args, int argc, char *argv[]){
 		args->reverse_y = 0;
 	}
 	if(warg){
-		args->invert_bit = 1;
+		args->invert_color = 1;
 	}
 	else{
-		args->invert_bit = 0;
+		args->invert_color = 0;
 	}
 	if(uarg){
 		args->odd = 1;
@@ -761,6 +772,12 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	}
 	else{
 		args->invert_frames = 0;
+	}
+	if(garg){
+		args->invert_byte = 1;
+	}
+	else{
+		args->invert_byte = 0;
 	}
 	return 0;
 }
