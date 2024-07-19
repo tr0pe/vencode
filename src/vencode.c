@@ -27,7 +27,6 @@
 
 #include <args.h>
 #include <util.h>
-#include <bmp.h>
 
 #ifndef __WIN32
 #include <sys/wait.h>
@@ -57,24 +56,6 @@ void png_set_pixel(png_bytepp rows,int y, int x, int color, int pixel_size){
 	for(int i=0;i<pixel_size; i++){
 		for(int j=0;j<pixel_size;j++){
 			rows[y+i][x + j] = color;
-		}
-	}
-}
-
-void bmp_set_pixel(
-	char *bitmap,
-	int x,
-	int y,
-	int color,
-	int padded_width,
-	int pixel_size){
-
-	for(int i = y ; i < (y+pixel_size) ; i++){
-		for(int j = x; j< (x+pixel_size); j++){
-			for (int color_ind = 0; color_ind < 3; color_ind++){
-				int index = i * padded_width + j * 3 + color_ind;
-				bitmap[index] = color;
-			}
 		}
 	}
 }
@@ -124,63 +105,6 @@ int png_get_pixel(png_bytep *row, int x,int y,int pixel_size,int acc){
 	return 127;
 }
 
-int bmp_get_pixel(unsigned char *data, int padded_width,
-					int y, int x, int width, int pixel_size,int bpp,int acc){
-
-	int prod = 0;
-	int index;
-
-	//get the median color pixel from bit (may be accurate [fast])
-	if(acc == 1 && pixel_size > 2){
-		if(bpp > 24)
-			index = (y+pixel_size)/2 * padded_width * 4 + (x+pixel_size)/2 * 4;
-		else
-			index = (y+pixel_size)/2 * padded_width * 3 + (x+pixel_size)/2 * 3;
-
-		prod = data[index];
-	}
-
-	//get the arithmetic average of color from bit (accurate?)
-	else if(acc == 2 && pixel_size > 1){
-		for(int i=0;i<pixel_size;i++){
-			for(int j=0;j<pixel_size;j++){
-				if(bpp > 24)
-					index = (y+i) * padded_width * 4 + (x+j) * 4;
-				else
-					index = (y+i) * padded_width * 3 + (x+j) * 3;
-				prod += data[index];
-			}
-		}
-		prod = prod/(pixel_size*pixel_size);
-	}
-
-	//get the first color pixel from bit (not accurate [fast])
-	else{
-		if(bpp > 24)
-			index = y * padded_width * 4 + x * 4;
-		else
-			index = y * padded_width * 3 + x * 3;
-		prod = data[index];
-	}
-
-	//todo: dynamic value adjustment
-	if(prod < 180 && prod > 80){
-		printf("\nEnd of file | Grayscale (may be ~127) = %d | ",prod);
-		printf("End coord: XY(%d,%d)\n",x,y);
-		return 127;
-	}
-
-	else if(prod > 180){
-		return 0;
-	}
-
-	else if(prod < 80){
-		return 1;
-	}
-
-	return 127;
-}
-
 typedef struct{
 	char *filename;
 	char *input_file_path;
@@ -198,9 +122,8 @@ typedef struct{
 	short pixel_size;
 
 	short thread_num;
-	int return_value;
+	short return_value;
 
-	short bmp;
 	_Bool reverse_x;
 	_Bool reverse_y;
 	_Bool invert_color;
@@ -278,133 +201,6 @@ void *write_image(void *arg){
 	int buffer_index = 0;
 	char c;
 	short invert_byte = img->invert_byte ? 7 : 0;
-
-	if(img->bmp){
-		//thanks to https://lmcnulty.me/words/bmp-output/
-		pthread_mutex_lock(&mutex);
-		FILE *BMP_OUTPUT = fopen(img->filename,"w");
-
-		if(BMP_OUTPUT == NULL){
-			perror(img->filename);
-			fprintf(stderr,"Error creating BMP output file.\n");
-			img->return_value = -1;
-			return NULL;
-		}
-
-		pthread_mutex_unlock(&mutex);
-
-		int bitmap_size = 3 * img->height * (img->width + 1);
-		int padded_width = bmp_round4(img->width * 3);
-
-		char bmp_tag[] = {'B','M'};
-
-		int header[] = {
-			0x0,				// File Size (update at the end)
-			0x00,				// Unused
-			0x36,				// Byte offset of pixel data
-			0x28,				// Header Size
-			img->width,			// image width in pixels
-			img->height,		// Image height in pixels
-			0x180001,			// 24 bits/pixel, 1 color pane
-			0,					// BI_RGB no ompression
-			0,					// Pixel data size in bytes
-			0x002e23, 0x002e23,	// Print resolution
-			0,0					// No color palette
-		};
-
-		header[0] = sizeof(header) + sizeof(bmp_tag) + bitmap_size;
-
-		char *bitmap = (char *)calloc(bitmap_size,sizeof(char));
-		if(bitmap == NULL){
-			fprintf(
-				stderr,
-				"Error allocating memory for bitmap image.\n"
-			);
-			pthread_mutex_lock(&mutex);
-			fclose(BMP_OUTPUT);
-			pthread_mutex_lock(&mutex);
-			free(num);
-			free(buffer);
-			img->return_value = -1;
-			return NULL;
-		}
-
-		for(
-			int row = img->reverse_y ? 0 : img->height - img->pixel_size;
-			img->reverse_y ? (row < img->height) : (row >= 0);
-			img->reverse_y ? (row += img->pixel_size) : (row -= img->pixel_size)
-		){
-			for(
-				int col = img->reverse_x ? img->width - img->pixel_size : 0;
-				img->reverse_x ? (col < 0) : (col < img->width);
-				img->reverse_x ? (col -= img->pixel_size) : (col += img->pixel_size)
-			){
-				if(buf_ind < img->sz){
-					c = buffer[buffer_index];
-					buffer_index++;
-					get_bin(c, num, img->invert_color);
-
-					for(int i=0;i<8;i++){
-						if(num[abs(invert_byte - i)]){
-							bmp_set_pixel(
-								bitmap,
-								img->reverse_x ?
-									col-(img->pixel_size * i) :
-									col+(img->pixel_size * i),
-								row,
-								0,
-								padded_width,
-								img->pixel_size
-							);
-						}
-						else{
-							bmp_set_pixel(
-								bitmap,
-								img->reverse_x ?
-									col-(img->pixel_size * i) :
-									col+(img->pixel_size * i),
-								row,
-								255,
-								padded_width,
-								img->pixel_size
-							);
-						}
-					}
-
-					if(img->reverse_x) col-=(img->pixel_size * 7);
-					else col+=(img->pixel_size * 7);
-
-					buf_ind++;
-				}
-				else{
-					bmp_set_pixel(
-						bitmap,
-						col,
-						row,
-						127,
-						padded_width,
-						img->pixel_size
-					);
-				}
-			}
-		}
-
-		pthread_mutex_lock(&mutex);
-		//error managment
-
-		fwrite(&bmp_tag,sizeof(bmp_tag),1, BMP_OUTPUT);
-		fwrite(&header, sizeof(header), 1, BMP_OUTPUT);
-		fwrite(bitmap, bitmap_size, sizeof(char), BMP_OUTPUT);
-
-		fclose(BMP_OUTPUT);
-		pthread_mutex_unlock(&mutex);
-		free(buffer);
-		free(num);
-		free(bitmap);
-		img->return_value = 0;
-
-		return NULL;
-	}
 
 	png_infop info;
 	png_structp png;
@@ -552,7 +348,7 @@ void *write_image(void *arg){
 }
 
 int encode(arg_s *args){
-	if(!args->noconfirm){
+	if(!args->noconfirm && !args->skip_ffmpeg){
 		if(!replace(args->output_file_path)){
 			return 0;
 		}
@@ -623,18 +419,10 @@ int encode(arg_s *args){
 
 	char ext[4];
 
-	if(args->bmp){
-		sprintf(dir,"%d_frames.bmp",pid);
-		strcpy(ext,"bmp");
-	}
-	else{
-		sprintf(dir,"%d_frames.png",pid);
-		strcpy(ext,"png");
-	}
+	sprintf(dir,"%d_frames.png",pid);
+	strcpy(ext,"png");
 
-	if(args->noprogress){
-		fprintf(stderr,"Writing images...\n");
-	}
+	if(args->noprogress) fprintf(stderr,"Writing images...\n");
 
 	unsigned int frame_index = 0;
 	while(frame_index < img_quant){
@@ -720,7 +508,6 @@ int encode(arg_s *args){
 			img[i]->width = args->width;
 			img[i]->pixel_size = args->pixel_size;
 			img[i]->input_file_path = args->input_file_path;
-			img[i]->bmp = args->bmp;
 			if(args->odd_mode){
 				if(!(frame_index%2)){
 					img[i]->reverse_x = 1;
@@ -831,12 +618,8 @@ int encode(arg_s *args){
 		return -1;
 	}
 
-	if(args->ultrafast){
-		sprintf(preset,"ultrafast");
-	}
-	else{
-		sprintf(preset,"medium");
-	}
+	if(args->ultrafast) sprintf(preset,"ultrafast");
+	else sprintf(preset,"medium");
 
 #ifndef __WIN32
 
@@ -856,12 +639,7 @@ int encode(arg_s *args){
 		return -1;
 	}
 
-	if(args->bmp){
-		sprintf(ffm_input,"%d_frames/frame_%%06d.bmp",pid);
-	}
-	else{
-		sprintf(ffm_input,"%d_frames/frame_%%06d.png",pid);
-	}
+	sprintf(ffm_input,"%d_frames/frame_%%06d.png",pid);
 
 	pid_t pidC = fork();
 
@@ -942,12 +720,7 @@ int encode(arg_s *args){
 		return -1;
 	}
 
-	if(args->bmp){
-		sprintf(ffm_input,"%d_frames/frame_%%06d.bmp",pid);
-	}
-	else{
-		sprintf(ffm_input,"%d_frames/frame_%%06d.png",pid);
-	}
+	sprintf(ffm_input,"%d_frames/frame_%%06d.png",pid);
 
 	char *output_vid_name = (char *)malloc(sizeof(char) * 512);
 	if(output_vid_name == NULL){
@@ -1016,25 +789,14 @@ int encode(arg_s *args){
 	char path[64];
 
 	while(1){
+		sprintf(path,"%d_frames/frame_%06ld.png",pid,file_quant);
 
-		if(args->bmp){
-			sprintf(path,"%d_frames/frame_%06ld.bmp",pid,file_quant);
-		}
-		else{
-			sprintf(path,"%d_frames/frame_%06ld.png",pid,file_quant);
-		}
-
-		if(access(path, R_OK) != 0){
-			break;
-		}
-		else{
-			file_quant++;
-		}
+		if(access(path, R_OK) != 0) break;
+		else file_quant++;
 
 		if(0 != remove(path)){
 			perror(path);
 			fprintf(stderr,"Error deleting %s\n",path);
-
 			return 1;
 		}
 	}
@@ -1092,33 +854,20 @@ int decode(arg_s *args){
 			return -1;
 		}
 
-		if(args->bmp){
-			sprintf(dir_ffm,"%d_frames/frame_%%06d.bmp",pid);
-		}
-		else{
-			sprintf(dir_ffm,"%d_frames/frame_%%06d.png",pid);
-		}
+		sprintf(dir_ffm,"%d_frames/frame_%%06d.png",pid);
 
 		input_dir = (char *)malloc(sizeof(char) * 128);
 		sprintf(input_dir,"%d_frames",pid);
 		if(input_dir == NULL){
-
 			fprintf(
 				stderr,
 				"Error allocating memory for output frame extract.\n"
 			);
-
 			return -1;
 		}
 
-		#ifndef __WIN32
+#ifndef __WIN32
 		mkdir(input_dir,0700);
-		#else
-		mkdir(input_dir);
-		#endif
-
-		#ifndef __WIN32
-
 		pid_t pidC;
 		int status;
 
@@ -1143,12 +892,13 @@ int decode(arg_s *args){
 		pidC = wait(&status);
 		free(dir_ffm);
 
-		#else //TODO!!!!
+#else //TODO!!!!
 		/*
 			I hate using the system() function, but I couldn't find
 			an alternative for fork() function for MinGW. I'll work
 			on it.
 		*/
+		mkdir(input_dir);
 		printf("Extracting frames of %s\n",args->input_file_path);
 
 		char *ffm_args = (char *)malloc(sizeof(char) * 256);
@@ -1160,7 +910,7 @@ int decode(arg_s *args){
 		printf("%s\n",ffm_args);
 		system(ffm_args);
 
-		#endif
+#endif
 	}
 
 	DIR *dir = opendir(input_dir);
@@ -1281,9 +1031,8 @@ int decode(arg_s *args){
 
 	int aprox_size;
 	aprox_size = (args->width*args->height*frame_count)/
-				 (args->pixel_size*args->pixel_size*8);
+				(args->pixel_size*args->pixel_size*8);
 
-//	aprox_size = aprox_size*(frame_count/8);
 
 	printf(" * Frames: %d\n",frame_count);
 	printf(" * Approximate output size: ");
@@ -1320,304 +1069,208 @@ int decode(arg_s *args){
 	else
 		invert_byte = 0;
 
-	if(args->bmp){
-		bmp_t *bmp;
-		unsigned char lett;
+	png_structp png;
+	png_infop info;
+	FILE *frame;
 
-		for(int i=0;i<frame_count;i++){
-			if(args->odd_mode){
-				if(!(i%2)){
-					reverse_x = 1;
-					reverse_y = 1;
-					invert_color = 1;
-					invert_byte = 0;
-				}	
-				else{
-					reverse_x = 0;
-					reverse_y = 0;
-					invert_color = 0;
-					invert_byte = 7;
-				}
-				if(i == (frame_count - 1)){
-					reverse_x = 0;
-					reverse_y = 0;
-					invert_color = 1;
-					invert_byte = 7;
-				}
+	for(int i=0;i<frame_count;i++){
+		if(args->odd_mode){
+			if(!(i%2)){
+				reverse_x = 1;
+				reverse_y = 1;
+				invert_color = 1;
+				invert_byte = 0;
 			}
 			else{
-				if(args->invert_color) invert_color = 1;
-				if(args->reverse_x) reverse_x = 1;
-				if(args->reverse_y) reverse_y = 1;
+				reverse_x = 0;
+				reverse_y = 0;
+				invert_color = 0;
+				invert_byte = 7;
 			}
-			bmp = bmp_read(filenames[i]);
-			int padded_width = bmp_round4(bmp->info_header->width);
-			int k = 0;
-			int res;
-
-			if(!args->noprogress){
-				if(frame_count > 1){
-					percent = (100*i)/(frame_count-1);
-				}
-				else{
-					percent = 100;
-				}
-				fprintf(stderr,"\rDecoding %s | %d%%",filenames[i],percent);
+			if(i == (frame_count - 1)){
+				reverse_x = 0;
+				reverse_y = 0;
+				invert_color = 1;
+				invert_byte = 7;
 			}
-
-			for(
-				int i = reverse_y ? 0 : bmp->info_header->height - args->pixel_size;
-				reverse_y ? (i < bmp->info_header->height) : (i >= 0 && !eend);
-				reverse_y ? (i += args->pixel_size) : (i -= args->pixel_size)
-			){
-				for(
-					int j = reverse_x ? bmp->info_header->width - args->pixel_size : 0;
-					reverse_x ? (j >= 0) : (j < bmp->info_header->width);
-					reverse_x ? (j-=args->pixel_size) : (j+=args->pixel_size)
-				){
-					res = bmp_get_pixel(
-								bmp->data,
-								padded_width,
-								i,j,
-								bmp->info_header->width,
-								args->pixel_size,
-								bmp->info_header->bits,
-								args->rmode
-							);
-					if(res == 127){
-						eend = 1;
-						break;
-					}
-
-					num[abs(invert_byte - k)] = res;
-					k++;
-
-					if(k>7){
-						lett = set_bin(num,invert_color);
-
-						if(0 == fwrite(&lett,1,sizeof(unsigned char),out)){
-
-							fprintf(stderr,
-								"Error writing byte to output file.\n");
-
-							fclose(out);
-							destroy_bmp(bmp);
-							destroy_filenames(filenames,frame_count);
-							free(filenames);
-							free(num);
-							return -1;
-						}
-						k=0;
-					}
-				}
-			}
-			destroy_bmp(bmp);
 		}
-	}
-	else{
-		png_structp png;
-		png_infop info;
-		FILE *frame;
+		else{
+			if(args->invert_color) invert_color = 1;
+			if(args->reverse_x) reverse_x = 1;
+			if(args->reverse_y) reverse_y = 1;
+		}
 
-		for(int i=0;i<frame_count;i++){
-			if(args->odd_mode){
-				if(!(i%2)){
-					reverse_x = 1;
-					reverse_y = 1;
-					invert_color = 1;
-					invert_byte = 0;
-				}
-				else{
-					reverse_x = 0;
-					reverse_y = 0;
-					invert_color = 0;
-					invert_byte = 7;
-				}
-				if(i == (frame_count - 1)){
-					reverse_x = 0;
-					reverse_y = 0;
-					invert_color = 1;
-					invert_byte = 7;
-				}
+		if(!args->noprogress){
+			if(frame_count > 1){
+				percent = (100*i)/(frame_count-1);
 			}
 			else{
-				if(args->invert_color) invert_color = 1;
-				if(args->reverse_x) reverse_x = 1;
-				if(args->reverse_y) reverse_y = 1;
+				percent = 100;
 			}
+			fprintf(stderr,"\rDecoding %s | %d%%",filenames[i],percent);
+		}
 
-			if(!args->noprogress){
-				if(frame_count > 1){
-					percent = (100*i)/(frame_count-1);
-				}
-				else{
-					percent = 100;
-				}
-				fprintf(stderr,"\rDecoding %s | %d%%",filenames[i],percent);
-			}
+		frame = fopen(filenames[i],"rb");
+		if(!frame){
+			perror(filenames[i]);
+			fprintf(stderr,"\nError opening file: %s",filenames[i]);
+			fclose(out);
+			destroy_filenames(filenames,frame_count);
+			free(filenames);
+			return -1;
+		}
+		png = png_create_read_struct(
+				PNG_LIBPNG_VER_STRING,
+				NULL,NULL,NULL);
 
-			frame = fopen(filenames[i],"rb");
-			if(!frame){
-				perror(filenames[i]);
-				fprintf(stderr,"\nError opening file: %s",filenames[i]);
-				fclose(out);
-				destroy_filenames(filenames,frame_count);
-				free(filenames);
-				return -1;
-			}
-			png = png_create_read_struct(
-					PNG_LIBPNG_VER_STRING,
-					NULL,NULL,NULL);
+		if(!png){
+			fprintf(stderr,"\nError creating PNG read struct\n");
+			fclose(out);
+			fclose(frame);
+			destroy_filenames(filenames,frame_count);
+			free(filenames);
+			return 1;
+		}
 
-			if(!png){
-				fprintf(stderr,"\nError creating PNG read struct\n");
-				fclose(out);
-				fclose(frame);
-				destroy_filenames(filenames,frame_count);
-				free(filenames);
-				return 1;
-			}
+		info = png_create_info_struct(png);
 
-			info = png_create_info_struct(png);
+		if(!info){
+			fprintf(stderr,"\nError creating PNG info struct\n");
+			fclose(out);
+			fclose(frame);
+			destroy_filenames(filenames,frame_count);
+			png_destroy_read_struct(&png,NULL,NULL);
+			free(filenames);
+			return 1;
+		}
 
-			if(!info){
-				fprintf(stderr,"\nError creating PNG info struct\n");
-				fclose(out);
-				fclose(frame);
-				destroy_filenames(filenames,frame_count);
-				png_destroy_read_struct(&png,NULL,NULL);
-				free(filenames);
-				return 1;
-			}
+		png_init_io(png,frame);
+		png_read_info(png,info);
 
-			png_init_io(png,frame);
-			png_read_info(png,info);
+		int width = png_get_image_width(png,info);
+		int height = png_get_image_height(png,info);
 
-			int width = png_get_image_width(png,info);
-			int height = png_get_image_height(png,info);
-
-			png_byte color_type = png_get_color_type(png, info);
-			png_byte bit_depth = png_get_bit_depth(png, info);
+		png_byte color_type = png_get_color_type(png, info);
+		png_byte bit_depth = png_get_bit_depth(png, info);
 
 
-			if (color_type == PNG_COLOR_TYPE_PALETTE){
-				png_set_expand_gray_1_2_4_to_8(png);
-			}
+		if (color_type == PNG_COLOR_TYPE_PALETTE){
+			png_set_expand_gray_1_2_4_to_8(png);
+		}
 
-			if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8){
-				png_set_expand_gray_1_2_4_to_8(png);
-			}
+		if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8){
+			png_set_expand_gray_1_2_4_to_8(png);
+		}
 
-			if (png_get_valid(png, info, PNG_INFO_tRNS)){
-				png_set_tRNS_to_alpha(png);
-			}
+		if (png_get_valid(png, info, PNG_INFO_tRNS)){
+			png_set_tRNS_to_alpha(png);
+		}
 
-			if (color_type == PNG_COLOR_TYPE_RGB ||
-				color_type == PNG_COLOR_TYPE_GRAY ||
-				color_type == PNG_COLOR_TYPE_PALETTE){
-				png_set_filler(png, 0xFF, PNG_FILLER_AFTER);
-			}
+		if (color_type == PNG_COLOR_TYPE_RGB ||
+			color_type == PNG_COLOR_TYPE_GRAY ||
+			color_type == PNG_COLOR_TYPE_PALETTE){
+			png_set_filler(png, 0xFF, PNG_FILLER_AFTER);
+		}
 
-			if (color_type == PNG_COLOR_TYPE_GRAY ||
-				color_type == PNG_COLOR_TYPE_GRAY_ALPHA){
-				png_set_gray_to_rgb(png);
-			}
+		if (color_type == PNG_COLOR_TYPE_GRAY ||
+			color_type == PNG_COLOR_TYPE_GRAY_ALPHA){
+			png_set_gray_to_rgb(png);
+		}
 
-			png_read_update_info(png, info);
+		png_read_update_info(png, info);
 
-			png_bytep *row_pointers;
-			row_pointers = (png_bytep *)malloc(sizeof(png_bytep) * height);
-			if(row_pointers == NULL){
+		png_bytep *row_pointers;
+		row_pointers = (png_bytep *)malloc(sizeof(png_bytep) * height);
+		if(row_pointers == NULL){
+			fprintf(
+				stderr,
+				"\nError allocating memory for PNG row vector.\n"
+			);
+			fclose(out);
+			fclose(frame);
+			destroy_filenames(filenames,frame_count);
+			free(filenames);
+			return -1;
+		}
+
+		for(int i=0;i<height;i++){
+			row_pointers[i] =
+			(png_byte *)malloc(png_get_rowbytes(png, info));
+
+			if(row_pointers[i] == NULL){
+
 				fprintf(
 					stderr,
-					"\nError allocating memory for PNG row vector.\n"
+					"\nError allocating memory for PNG row pointers.\n"
 				);
+
 				fclose(out);
 				fclose(frame);
 				destroy_filenames(filenames,frame_count);
 				free(filenames);
 				return -1;
 			}
+		}
 
-			for(int i=0;i<height;i++){
-				row_pointers[i] =
-				(png_byte *)malloc(png_get_rowbytes(png, info));
+		png_read_image(png, row_pointers);
 
-				if(row_pointers[i] == NULL){
+		short k = 0;
+		short res;
+		char lett;
 
-					fprintf(
-						stderr,
-						"\nError allocating memory for PNG row pointers.\n"
+		for(
+			int y = reverse_y ? height - args->pixel_size : 0;
+			reverse_y ? (y >= 0  && !eend) : (y < height && !eend);
+			reverse_y ? (y-=args->pixel_size) : (y+=args->pixel_size)
+		){
+			for(
+				int x = reverse_x ? width - args->pixel_size : 0;
+				reverse_x ? (x >= 0  && !eend) : (x < width && !eend);
+				reverse_x ? (x-=args->pixel_size) : (x+=args->pixel_size)
+			){
+				res = png_get_pixel(
+						row_pointers,
+						x,y,
+						args->pixel_size,
+						args->rmode
 					);
 
-					fclose(out);
-					fclose(frame);
-					destroy_filenames(filenames,frame_count);
-					free(filenames);
-					return -1;
+				if(res == 127){
+					eend = 1;
+					break;
+				}
+
+				num[abs(invert_byte - k)] = res;
+				k++;
+
+				if(k>7){
+					lett = set_bin(num,invert_color);
+					if(0 == fwrite(&lett,1,sizeof(char),out)){
+
+						fprintf(stderr,
+							"\nError writing byte to output file.\n");
+
+						fclose(out);
+						fclose(frame);
+						destroy_filenames(filenames,frame_count);
+						free(filenames);
+						free(num);
+						return -1;
+					}
+					k=0;
 				}
 			}
-
-			png_read_image(png, row_pointers);
-
-			short k = 0;
-			short res;
-			char lett;
-
-			for(
-				int y = reverse_y ? height - args->pixel_size : 0;
-				reverse_y ? (y >= 0  && !eend) : (y < height && !eend);
-				reverse_y ? (y-=args->pixel_size) : (y+=args->pixel_size)
-			){
-				for(
-					int x = reverse_x ? width - args->pixel_size : 0;
-					reverse_x ? (x >= 0  && !eend) : (x < width && !eend);
-					reverse_x ? (x-=args->pixel_size) : (x+=args->pixel_size)
-				){
-					res = png_get_pixel(
-							row_pointers,
-							x,y,
-							args->pixel_size,
-							args->rmode
-						);
-
-					if(res == 127){
-						eend = 1;
-						break;
-					}
-
-					num[abs(invert_byte - k)] = res;
-					k++;
-
-					if(k>7){
-						lett = set_bin(num,invert_color);
-						if(0 == fwrite(&lett,1,sizeof(char),out)){
-
-							fprintf(stderr,
-								"\nError writing byte to output file.\n");
-
-							fclose(out);
-							fclose(frame);
-							destroy_filenames(filenames,frame_count);
-							free(filenames);
-							free(num);
-							return -1;
-						}
-						k=0;
-					}
-				}
-			}
-
-			png_destroy_read_struct(&png, &info,NULL);
-			png_free_data(png,info,PNG_FREE_ALL,-1);
-
-			fclose(frame);
-
-			for(int i=0;i<args->height;i++){
-				free(row_pointers[i]);
-			}
-			free(row_pointers);
 		}
+
+		png_destroy_read_struct(&png, &info,NULL);
+		png_free_data(png,info,PNG_FREE_ALL,-1);
+
+		fclose(frame);
+
+		for(int i=0;i<args->height;i++){
+			free(row_pointers[i]);
+		}
+		free(row_pointers);
 	}
 
 	free(num);

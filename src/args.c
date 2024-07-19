@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define __VERSION "1.3.5"
+#define __VERSION "1.4.0"
 char *default_codec = "libx265";
 
 typedef struct{
@@ -23,7 +23,6 @@ typedef struct{
 	_Bool skip_ffmpeg;
 	_Bool keep_frames;
 	_Bool quiet;
-	_Bool bmp;
 	_Bool noprogress;
 	_Bool reverse_x;
 	_Bool reverse_y;
@@ -70,12 +69,6 @@ void print_help(char *argv0){
 	printf("                                will take the default value. (libx265).\n");
 	printf("                                Hint: libx264 fast, larger video size \n");
 	printf("                                      libx265 slow, small video size\n\n");
-
-	printf(" -b                             Enable BMP image support (experimental). Image\n");
-	printf("                                write will be faster than PNG but requires more\n");
-	printf("                                disk space.\n");
-	printf("                                WARNING: ffmpeg process with BMP images\n");
-	printf("                                will be slower.\n\n");
 
 	printf(" -z                             Set ultra fast video encoding. This argument\n");
 	printf("                                is only available when a file will be.\n");
@@ -150,7 +143,6 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	_Bool sarg = 0;
 	_Bool karg = 0;
 	_Bool qarg = 0;
-	_Bool barg = 0;
 	_Bool Qarg = 0;
 	_Bool aarg = 0;
 	_Bool yarg = 0;
@@ -362,13 +354,6 @@ int getopts(arg_s *args, int argc, char *argv[]){
 			}
 			narg = 1;
 		}
-		else if(!strcmp(argv[i],"-b")){//bmp support
-			if(barg){
-				fprintf(stderr,"Duplicated BMP image support argument.\n");
-				return 1;
-			}
-			barg = 1;
-		}
 		else if(!strcmp(argv[i],"-f")){//fps
 			if(farg){
 				fprintf(stderr,"Duplicated framerate argument.\n");
@@ -547,7 +532,6 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	args->quiet = qarg;
 	args->ultrafast = zarg;
 	args->skip_ffmpeg = sarg;
-	args->bmp = barg;
 	args->pixel_size = pixel_size;
 	args->threads = threads;
 	args->framerate = framerate;

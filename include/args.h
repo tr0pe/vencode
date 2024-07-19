@@ -19,7 +19,6 @@ typedef struct{
 	_Bool skip_ffmpeg;
 	_Bool keep_frames;
 	_Bool quiet;
-	_Bool bmp;
 	_Bool noprogress;
 	_Bool reverse_x;
 	_Bool reverse_y;
