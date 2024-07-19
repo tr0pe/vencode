@@ -551,7 +551,7 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	args->pixel_size = pixel_size;
 	args->threads = threads;
 	args->framerate = framerate;
-	args->reverse_y = yarg;
+	args->reverse_x = yarg;
 	args->reverse_y = Yarg;
 	args->invert_color = warg;
 	args->odd = uarg;
@@ -562,6 +562,7 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	args->output_file_path = argv[out_file_arg_pos];
 	args->width  = 1280;
 	args->height = 720;
+	args->ffmpeg_path = NULL;
 
 	if(!earg && !darg){
 		fprintf(
@@ -648,12 +649,3 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	}
 	return 0;
 }
-
-#ifndef __WIN32
-void destroy_args(arg_s *args){
-	if(args->ffmpeg_path != NULL){
-		free(args->ffmpeg_path);
-		args->ffmpeg_path = NULL;
-	}
-}
-#endif

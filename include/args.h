@@ -30,7 +30,6 @@ typedef struct{
 }arg_s;
 
 int getopts(arg_s *args, int argc, char *argv[]);
-void destroy_args(arg_s *args);
 int compat(const void *a, const void *b);
 
 #endif
