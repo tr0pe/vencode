@@ -14,12 +14,8 @@ char getch_(int echo);
 int dig(int num);
 void print_size(long unsigned bytes);
 int img_index(char *ptr, int num,int pid,char *ext);
-void print_num(_Bool *arr);
 int compat(const void *a, const void *b);
 int compat_reverse(const void *a, const void *b);
-
-#ifndef __WIN32
-#define getch() getch_(0)
-#endif
+_Bool replace(char *filename);
 
 #endif

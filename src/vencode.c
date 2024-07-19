@@ -277,7 +277,7 @@ void *write_image(void *arg){
 
 	int buffer_index = 0;
 	char c;
-	short invert_byte = img->invert_byte ? 7 : 0; 
+	short invert_byte = img->invert_byte ? 7 : 0;
 
 	if(img->bmp){
 		//thanks to https://lmcnulty.me/words/bmp-output/
@@ -348,7 +348,7 @@ void *write_image(void *arg){
 						if(num[abs(invert_byte - i)]){
 							bmp_set_pixel(
 								bitmap,
-								img->reverse_x ? 
+								img->reverse_x ?
 									col-(img->pixel_size * i) :
 									col+(img->pixel_size * i),
 								row,
@@ -360,7 +360,7 @@ void *write_image(void *arg){
 						else{
 							bmp_set_pixel(
 								bitmap,
-								img->reverse_x ? 
+								img->reverse_x ?
 									col-(img->pixel_size * i) :
 									col+(img->pixel_size * i),
 								row,
@@ -552,37 +552,17 @@ void *write_image(void *arg){
 }
 
 int encode(arg_s *args){
+	if(!args->noconfirm){
+		if(!replace(args->output_file_path)){
+			return 0;
+		}
+	}
 
 	long unsigned int sz;
 
 	FILE *input = open_file(args->input_file_path,&sz);
 	if(input == NULL){
 		return -1;
-	}
-
-	char key = 0;
-	if(!args->skip_ffmpeg){
-		if(-1 != access(args->output_file_path,R_OK)){
-			if(!args->noconfirm){
-
-				printf(
-					"Replace '%s' file? [y/n] ",
-					args->output_file_path
-				);
-
-				while(key != 'y' || key != 'n'){
-					key = getch();
-					if(key == 'n'){
-						printf("\n");
-						return -1;
-					}
-					else{
-						break;
-					}
-				}
-				printf("\n");
-			}
-		}
 	}
 
 	if(sz == 0){
@@ -740,7 +720,7 @@ int encode(arg_s *args){
 			img[i]->width = args->width;
 			img[i]->pixel_size = args->pixel_size;
 			img[i]->input_file_path = args->input_file_path;
-			img[i]->bmp = args->bmp; 
+			img[i]->bmp = args->bmp;
 			if(args->odd_mode){
 				if(!(frame_index%2)){
 					img[i]->reverse_x = 1;
@@ -752,6 +732,12 @@ int encode(arg_s *args){
 					img[i]->reverse_x = 0;
 					img[i]->reverse_y = 0;
 					img[i]->invert_color = 0;
+					img[i]->invert_byte = 1;
+				}
+				if(frame_index == (img_quant - 1)){
+					img[i]->reverse_x = 0;
+					img[i]->reverse_y = 0;
+					img[i]->invert_color = 1;
 					img[i]->invert_byte = 1;
 				}
 			}
@@ -790,7 +776,7 @@ int encode(arg_s *args){
 				);
 
 				for(int i=0;i<args->threads; i++){
-					free(img[i]->filename); 
+					free(img[i]->filename);
 					free(img[i]);
 				}
 
@@ -1068,21 +1054,9 @@ int encode(arg_s *args){
 }
 
 int decode(arg_s *args){
-	char key = 0;
-	if(-1 != access(args->output_file_path,R_OK)){
-		if(!args->noconfirm){
-			printf("Replace '%s' file? [y/n] ",args->output_file_path);
-			while(key != 'y' || key != 'n'){
-				key = getch();
-				if(key == 'n'){
-					printf("\n");
-					return -1;
-				}
-				else if(key == 'y'){
-					break;
-				}
-			}
-			printf("\n");
+	if(!args->skip_ffmpeg && !args->noconfirm){
+		if(replace(args->output_file_path)){
+			return 0;
 		}
 	}
 
@@ -1357,11 +1331,17 @@ int decode(arg_s *args){
 					reverse_y = 1;
 					invert_color = 1;
 					invert_byte = 0;
-				}
+				}	
 				else{
 					reverse_x = 0;
 					reverse_y = 0;
 					invert_color = 0;
+					invert_byte = 7;
+				}
+				if(i == (frame_count - 1)){
+					reverse_x = 0;
+					reverse_y = 0;
+					invert_color = 1;
 					invert_byte = 7;
 				}
 			}
@@ -1451,6 +1431,12 @@ int decode(arg_s *args){
 					reverse_x = 0;
 					reverse_y = 0;
 					invert_color = 0;
+					invert_byte = 7;
+				}
+				if(i == (frame_count - 1)){
+					reverse_x = 0;
+					reverse_y = 0;
+					invert_color = 1;
 					invert_byte = 7;
 				}
 			}

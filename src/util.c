@@ -73,7 +73,7 @@ int dig(int num){
 }
 
 #ifndef __WIN32
-char getch_(int echo){
+char getch(void){
 	static struct termios old, new;
 	char ch;
 	tcgetattr(0, &old);
@@ -126,9 +126,25 @@ int img_index(char *ptr, int num, int pid, char *ext){
 	return 0;
 }
 
-void print_num(_Bool *arr){
-	for(int i=0;i<8;i++){
-		printf("%d",arr[i]);
+_Bool replace(char *filename){
+	char key;
+	if(-1 != access(filename,R_OK)){
+		printf(
+			"Replace '%s' file? [y/n] ",
+			filename
+		);
+
+		while(key != 'y' || key != 'n'){
+			key = getch();
+			if(key == 'n'){
+				printf("\n");
+				return 1;
+			}
+			else{
+				break;
+			}
+		}
+		printf("\n");
 	}
-	printf("\n");
+	return 0;
 }

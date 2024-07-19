@@ -21,10 +21,10 @@ typedef struct{
 	int32_t  yresolution;       // Pixels per meter
 	uint32_t ncolours;          // Number of colours
 	uint32_t importantcolours;  // Important colours
-}bmp_info_header;
+}bmp_info;
 
 typedef struct{
-	bmp_info_header *info_header;
+	bmp_info *info_header;
 	bmp_header *header;
 	unsigned char *data;
 }bmp_t;
@@ -35,24 +35,7 @@ void destroy_bmp(bmp_t *bmp){
 	if(bmp->data != NULL) free(bmp->data);
 	if(bmp != NULL) free(bmp);
 }
-/*
-void bmp_check(bmp_t *bmp){
-	fprintf(stderr,"ID is: %d, should be %d\n",bmp->header->type,'M'*256+'B');
-	fprintf(stderr,"File size is %d bytes\n",bmp->header->size);
-	fprintf(stderr,"Offset to image data is %d bytes\n",bmp->header->offset);
-	fprintf(stderr,"Image size = %d x ",bmp->info_header->width);
-	fprintf(stderr,"%d\n",bmp->info_header->height);
-	fprintf(stderr,"Number of colour planes is %d\n",bmp->info_header->planes);
-	fprintf(stderr,"Bits per pixel is %d\n",bmp->info_header->bits);
-	fprintf(stderr,"Compression type is %d\n",bmp->info_header->compression);
-	fprintf(stderr,"Number of colours is %d\n",bmp->info_header->ncolours);
-	fprintf(
-		stderr,
-		"Number of required colours is %d\n",
-		bmp->info_header->importantcolours
-	);
-}
-*/
+
 int bmp_round4(int x){
 	return x % 4 == 0 ? x : x - x % 4 + 4;
 }
@@ -61,8 +44,8 @@ bmp_t *bmp_read(const char *filename){
 	bmp_header *header;
 	header = (bmp_header *)malloc(sizeof(bmp_header));
 
-	bmp_info_header *info_header;
-	info_header = (bmp_info_header *)malloc(sizeof(bmp_info_header));
+	bmp_info *info_header;
+	info_header = (bmp_info *)malloc(sizeof(bmp_info));
 
 	FILE *bmp_input = fopen(filename,"rb");
 	if(bmp_input == NULL) {
@@ -76,7 +59,7 @@ bmp_t *bmp_read(const char *filename){
 	fread(&header->notused2,1,sizeof(uint16_t),bmp_input);
 	fread(&header->offset,  1,sizeof(uint32_t),bmp_input);
 
-	if(fread(info_header,sizeof(bmp_info_header),1,bmp_input) != 1) {
+	if(fread(info_header,sizeof(bmp_info),1,bmp_input) != 1) {
 		fprintf(stderr,"Failed to read BMP info header\n");
 		return NULL;
 	}

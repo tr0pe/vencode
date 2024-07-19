@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define __VERSION "1.3.4"
+#define __VERSION "1.3.5"
 char *default_codec = "libx265";
 
 typedef struct{

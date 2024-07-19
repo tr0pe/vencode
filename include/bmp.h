@@ -20,10 +20,10 @@ typedef struct {
 	int32_t  yresolution;       // Pixels per meter
 	uint32_t ncolours;          // Number of colours
 	uint32_t importantcolours;  // Important colours
-}bmp_info_header;
+}bmp_info;
 
 typedef struct{
-	bmp_info_header *info_header;
+	bmp_info *info_header;
 	bmp_header *header;
 	unsigned char *data;
 }bmp_t;
