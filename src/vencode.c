@@ -2234,37 +2234,28 @@ int decode(arg_s *args){
 int main(int argc, char *argv[]){
 	arg_s args;
 
-	args.ffmpeg_path = NULL;
-	args.codec = NULL;
-	args.skip_ffmpeg = 0;
-	args.rmode = 2;
-
-	int return_value;
-	return_value = getopts(&args,argc,argv);
-	if(return_value != 0)
-		return 1;
+	if(getopts(&args,argc,argv) != 0) return 1;
 
 	if(!args.skip_ffmpeg){
-		args.ffmpeg_path = (char *)malloc(sizeof(char) * 32);
+		args.ffmpeg_path = (char *)malloc(sizeof(char) * 64);
 		if(args.ffmpeg_path == NULL){
-
-			fprintf(stderr,
-				"Error allocating memory for FFMPEG file path.\n");
-
-			destroy_args(&args);
+			fprintf(
+				stderr,
+				"Error allocating memory for FFMPEG file path.\n"
+			);
 			return 1;
 		}
-#ifdef __WIN32
-		if(0 == check_ffmpeg()){
-			fprintf(stderr,"Error. '%s' not found.\n",FFMPEG_EXE_PATH);
-		}
-#else
+#ifndef __WIN32
 		if(0 == check_ffmpeg(args.ffmpeg_path)){
 			if(!args.quiet)
 				printf(
 					"Found FFMPEG binary at: %s\n",
 					args.ffmpeg_path
 				);
+		}
+#else
+		if(0 == check_ffmpeg()){
+			fprintf(stderr,"Error. '%s' not found.\n",FFMPEG_EXE_PATH);
 		}
 		else{
 			fprintf(stderr,"\nFFMPEG not found on your system.\n");
@@ -2275,7 +2266,10 @@ int main(int argc, char *argv[]){
 
 	if(args.operation) decode(&args);
 	else encode(&args);
-	destroy_args(&args);
+
+#ifndef __WIN32
+	free(args.ffmpeg_path);
+#endif
 
 	return 0;
 }
