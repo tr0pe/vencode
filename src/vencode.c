@@ -38,31 +38,28 @@
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void get_bin(char c, _Bool *num, _Bool invert_color){
-	for(int i = 0; i < 8; i++){
+	for(short i=0;i<8;i++)
 		num[i] = invert_color ? !((c >> (7 - i)) & 1) : ((c >> (7 - i)) & 1);
-	}
 }
 
 char set_bin(_Bool *num, _Bool invert_color){
 	char byte = 0;
-	for(int i=0;i<8;i++){
+	for(short i=0;i<8;i++){
 		if(i != 0) byte <<= 1;
 		byte |= invert_color ? !num[i] : num[i];
 	}
 	return byte;
 }
 
-void png_set_pixel(png_bytepp rows,int y, int x, int color, int pixel_size){
-	for(int i=0;i<pixel_size; i++){
-		for(int j=0;j<pixel_size;j++){
+void png_set_pixel(png_bytepp rows,int y,int x,short color,short pixel_size){
+	for(short i=0;i<pixel_size; i++)
+		for(short j=0;j<pixel_size;j++)
 			rows[y+i][x + j] = color;
-		}
-	}
 }
 
-int png_get_pixel(png_bytep *row, int x,int y,int pixel_size,int acc){
+short png_get_pixel(png_bytep *row, int x,int y,short pixel_size,short acc){
 	png_bytep px;
-	int prod = 0;
+	short prod = 0;
 
 	//get the median color pixel from bit (may be accurate [fast])
 	if(acc == 1 && pixel_size > 2){
@@ -72,8 +69,8 @@ int png_get_pixel(png_bytep *row, int x,int y,int pixel_size,int acc){
 
 	//get the arithmetic average of color from bit (accurate?)
 	else if(acc == 2 && pixel_size > 1){
-		for(int i=0;i<pixel_size;i++){
-			for(int j=0;j<pixel_size;j++){
+		for(short i=0;i<pixel_size;i++){
+			for(short j=0;j<pixel_size;j++){
 				px = &(row[y+i][((x+j) * 4)]);
 				prod += px[0];
 			}
@@ -94,13 +91,8 @@ int png_get_pixel(png_bytep *row, int x,int y,int pixel_size,int acc){
 		return 127;
 	}
 
-	else if(prod > 180){
-		return 0;
-	}
-
-	else if(prod < 80){
-		return 1;
-	}
+	else if(prod > 180) return 0;
+	else if(prod < 80)  return 1;
 
 	return 127;
 }
@@ -114,7 +106,7 @@ typedef struct{
 	long unsigned int sz;
 	size_t img_sz;
 
-	long int pos;
+	long unsigned int pos;
 	FILE **input;
 
 	short width;
@@ -177,11 +169,7 @@ void *write_image(void *arg){
 		return NULL;
 	}
 
-	int num_it;
-
-	num_it = fread(buffer,sizeof(char),img->img_sz,*(img->input));
-
-	if(num_it == 0){ //fread error
+	if(fread(buffer,sizeof(char),img->img_sz,*(img->input)) == 0){ //fread error
 		if(ferror(*(img->input))){
 			fprintf(stderr,"\nError reading input file stream.\n");
 			free(num);
@@ -190,15 +178,12 @@ void *write_image(void *arg){
 			return NULL;
 		}
 	}
-	else{ //end of file?
-//		fprintf(stderr,"\nEOF\n");
-	}
 
 	pthread_mutex_unlock(&mutex);
 
-	int buf_ind = img->pos;
+	long unsigned int buf_ind = img->pos;
 
-	int buffer_index = 0;
+	unsigned int buffer_index = 0;
 	char c;
 	short invert_byte = img->invert_byte ? 7 : 0;
 
@@ -208,7 +193,7 @@ void *write_image(void *arg){
 	png_bytepp rows =
 	(png_bytepp)malloc(img->height * sizeof(png_bytep));
 	if(rows == NULL){
-		fprintf(stderr,"Error allocating memory for row pointer.\n");
+		fprintf(stderr,"Error allocating memory for rows pointer.\n");
 		free(num);
 		free(buffer);
 		img->return_value = -1;
@@ -216,8 +201,14 @@ void *write_image(void *arg){
 	}
 	for(int i=0;i < img->height;i++){
 		rows[i] = (png_bytep)calloc(img->width * 4, sizeof(png_byte));
+		if(rows[i] == NULL){
+			fprintf(stderr,"Error allocating memory for PNG rows.\n");
+			free(num);
+			free(buffer);
+			img->return_value = -1;
+			return NULL;
+		}
 	}
-
 	pthread_mutex_lock(&mutex);
 
 	FILE *png_output;
@@ -291,27 +282,15 @@ void *write_image(void *arg){
 				c = buffer[buffer_index];
 				buffer_index++;
 				get_bin(c, num, img->invert_color);
-				for(int i=0;i<8;i++){
-					if(num[abs(invert_byte - i)])
-						png_set_pixel(
-							rows,
-							y,
-							img->reverse_x ?
-							x-(img->pixel_size * i) :
-							x+(img->pixel_size * i),
-							0,
-							img->pixel_size
-						);
-					else
-						png_set_pixel(
-							rows,
-							y,
-							img->reverse_x ?
-							x-(img->pixel_size * i) :
-							x+(img->pixel_size * i),
-							255,
-							img->pixel_size
-						);
+				for(short i=0;i<8;i++){
+					png_set_pixel(
+						rows,
+						y,
+						img->reverse_x ?
+						x-(img->pixel_size * i) : x+(img->pixel_size * i),
+						num[abs(invert_byte - i)] ? 0 : 255,
+						img->pixel_size
+					);
 				}
 				buf_ind++;
 				if(img->reverse_x) x -= (img->pixel_size * 7);
@@ -329,9 +308,7 @@ void *write_image(void *arg){
 	png_destroy_write_struct(&png, &info);
 	png_free_data(png,info,PNG_FREE_ALL,-1);
 
-	for(int i=0;i<img->height;i++){
-		free(rows[i]);
-	}
+	for(int i=0;i<img->height;i++) free(rows[i]);
 	free(rows);
 
 	pthread_mutex_lock(&mutex);
@@ -347,9 +324,9 @@ void *write_image(void *arg){
 	return NULL;
 }
 
-int encode(arg_s *args){
+short encode(arg_s *args){
 	if(!args->noconfirm && !args->skip_ffmpeg){
-		if(!replace(args->output_file_path)){
+		if(replace(args->output_file_path)){
 			return 0;
 		}
 	}
@@ -357,14 +334,12 @@ int encode(arg_s *args){
 	long unsigned int sz;
 
 	FILE *input = open_file(args->input_file_path,&sz);
-	if(input == NULL){
-		return -1;
-	}
+	if(input == NULL) return -1;
 
 	if(sz == 0){
 		fprintf(stderr,"Error. The file is empty.\n");
 		fclose(input);
-		return(1);
+		return 1;
 	}
 
 	long unsigned int max_img_size;
@@ -372,9 +347,8 @@ int encode(arg_s *args){
 	(args->pixel_size * args->pixel_size * 8);
 
 	if(max_img_size == 0){
-		fprintf(
-			stderr,
-			"!! Error (divide by 0) this may be fixed on later versions...\n"
+		fprintf(stderr,
+			"Error: At least 1 byte must be stored per frame.\n"
 		);
 		return 1;
 	}
@@ -394,28 +368,26 @@ int encode(arg_s *args){
 		getchar();
 	}
 
-	int percent;
+	short percent;
 
-	int pid = getpid();
+	pid_t pid = getpid();
 	char dir[32];
 
 	sprintf(dir,"%d_frames",pid);
 
-	#ifndef __WIN32
+#ifndef __WIN32
 	mkdir(dir,0700);
-	#else
+#else
 	mkdir(dir);
-	#endif
+#endif
 
 	pthread_t WRITE[args->threads];
 
 	wr_img_s *img[args->threads];
 
-	int th_ind;
+	short th_ind;
 
-	if(img_quant == 1){
-		percent = 100;
-	}
+	if(img_quant == 1) percent = 100;
 
 	char ext[4];
 
@@ -427,75 +399,45 @@ int encode(arg_s *args){
 	unsigned int frame_index = 0;
 	while(frame_index < img_quant){
 		th_ind = 0;
-		for(int i=0;i<args->threads && frame_index < img_quant;i++){
-
+		for(short i=0;i<args->threads && frame_index < img_quant;i++){
 			img[i] = (wr_img_s *)malloc(sizeof(wr_img_s));
 			if(img[i] == NULL){
 				fprintf(stderr,
-					"Error allocating memory for thread struct %d\n",i);
+					"Error allocating memory for thread struct %d\n",i
+				);
 				fclose(input);
-
-				for(int i=0;i<args->threads;i++){
-					free(img[i]->filename);
-				}
-
+				for(short i=0;i<args->threads;i++) free(img[i]->filename);
 				return -1;
 			}
-
 			img[i]->filename = (char *)malloc(sizeof(char)*128);
 			if(img[i]->filename == NULL){
-
-				fprintf(
-					stderr,
+				fprintf(stderr,
 					"t[%d] Error allocating memory for png path %d \n",
 					i,frame_index
 				);
 
 				fclose(input);
 
-				for(int i=0;i<args->threads;i++){
+				for(short i=0;i<args->threads;i++){
 					free(img[i]->filename);
 					free(img[i]);
 				}
-
 				return -1;
 			}
 
-			if(args->invert_frames){
-				if( -1 == img_index(img[i]->filename,img_quant - frame_index - 1,pid,ext)){
-					fprintf(stderr,"error\n");
-					fclose(input);
+			img_index(
+				img[i]->filename,
+				args->invert_frames ? (img_quant-frame_index-1) : frame_index,
+				pid,ext
+			);
 
-					for(int i=0;i<args->threads;i++){
-						free(img[i]->filename);
-						if(img[i] != NULL){
-							free(img[i]);
-						}
-					}
-					return -1;
-				}
-			}
-			else{
-				if( -1 == img_index(img[i]->filename,frame_index,pid,ext)){
-					fprintf(stderr,"error\n");
-					fclose(input);
-
-					for(int i=0;i<args->threads;i++){
-						free(img[i]->filename);
-						if(img[i] != NULL){
-							free(img[i]);
-						}
-					}
-					return -1;
-				}
-			}
 			if(!args->noprogress){
-				if(img_quant > 1){
-					percent = (100*frame_index)/(img_quant-1);
-				}
-
-				fprintf(stderr,"\rWriting data to: %s | %d%%",
-					img[i]->filename,percent);
+				if(img_quant > 1) percent = (100*frame_index)/(img_quant-1);
+				fprintf(
+					stderr,
+					"\rWriting data to: %s | %d%%",
+					img[i]->filename,percent
+				);
 			}
 
 			img[i]->thread_num = i;
@@ -508,7 +450,7 @@ int encode(arg_s *args){
 			img[i]->width = args->width;
 			img[i]->pixel_size = args->pixel_size;
 			img[i]->input_file_path = args->input_file_path;
-			if(args->odd_mode){
+			if(args->odd){
 				if(!(frame_index%2)){
 					img[i]->reverse_x = 1;
 					img[i]->reverse_y = 1;
@@ -539,7 +481,7 @@ int encode(arg_s *args){
 				perror("\npthread_create");
 				fclose(input);
 
-				for(int i=0;i<args->threads;i++){
+				for(short i=0;i<args->threads;i++){
 					free(img[i]->filename);
 					free(img[i]);
 				}
@@ -552,17 +494,16 @@ int encode(arg_s *args){
 			th_ind++;
 		}
 
-		for(int i=0;i<th_ind;i++){
+		for(short i=0;i<th_ind;i++){
 			pthread_join(WRITE[i],NULL);
 			if(img[i]->return_value != 0){
 
-				fprintf(
-					stderr,
+				fprintf(stderr,
 					"\nAn error ocurred writing: %s.\nExiting...\n",
 					img[i]->filename
 				);
 
-				for(int i=0;i<args->threads; i++){
+				for(short i=0;i<args->threads; i++){
 					free(img[i]->filename);
 					free(img[i]);
 				}
@@ -570,9 +511,7 @@ int encode(arg_s *args){
 				return -1;
 			}
 			free(img[i]->filename);
-			if(img[i] != NULL){
-				free(img[i]);
-			}
+			if(img[i] != NULL) free(img[i]);
 		}
 	}
 
@@ -589,17 +528,14 @@ int encode(arg_s *args){
 
 	char *framerate = (char *)malloc(sizeof(char) * 32);
 	if(framerate == NULL){
-		fprintf(
-			stderr,
+		fprintf(stderr,
 			"Error allocating memory for framerate argument."
 		);
 		fclose(input);
-
-		for(int i=0;i<args->threads; i++){
+		for(short i=0;i<args->threads; i++){
 			free(img[i]->filename);
 			free(img[i]);
 		}
-
 		return -1;
 	}
 
@@ -609,12 +545,10 @@ int encode(arg_s *args){
 	if(preset == NULL){
 		fprintf(stderr,"Error allocating memory for preset argument.");
 		fclose(input);
-
-		for(int i=0;i<args->threads; i++){
+		for(short i=0;i<args->threads; i++){
 			free(img[i]->filename);
 			free(img[i]);
 		}
-
 		return -1;
 	}
 
@@ -625,28 +559,25 @@ int encode(arg_s *args){
 
 	char *ffm_input = (char *)malloc(sizeof(char) * 128);
 	if(ffm_input == NULL){
-
 		fprintf(stderr,
-			"Error allocating memory for frames output filename\n");
-
+			"Error allocating memory for frames output filename\n"
+		);
 		fclose(input);
 
-		for(int i=0;i<args->threads; i++){
+		for(short i=0;i<args->threads; i++){
 			free(img[i]->filename);
 			free(img[i]);
 		}
-
 		return -1;
 	}
 
-	sprintf(ffm_input,"%d_frames/frame_%%06d.png",pid);
+	sprintf(ffm_input,"%d_frames/frame_%%09d.png",pid);
 
 	pid_t pidC = fork();
 
 	int status;
-	if(pidC > 0){
-		printf("Encoding video with ffmpeg...\n");
-	}
+
+	if(pidC > 0) printf("Encoding video with ffmpeg...\n");
 	else if(pidC == 0){
 		if(args->noconfirm){
 			execlp(args->ffmpeg_path,"ffmpeg",
@@ -681,11 +612,10 @@ int encode(arg_s *args){
 		free(preset);
 		free(framerate);
 
-		for(int i=0;i<args->threads; i++){
+		for(short i=0;i<args->threads; i++){
 			free(img[i]->filename);
 			free(img[i]);
 		}
-
 		return -1;
 	}
 
@@ -705,38 +635,36 @@ int encode(arg_s *args){
 
 	char *ffm_input = (char *)malloc(sizeof(char) * 128);
 	if(ffm_input == NULL){
-
 		fprintf(stderr,
-			"Error allocating memory for ffmpeg input filename.\n");
+			"Error allocating memory for ffmpeg input filename.\n"
+		);
 
 		free(preset);
 		free(framerate);
 
-		for(int i=0;i<args->threads; i++){
+		for(short i=0;i<args->threads; i++){
 			free(img[i]->filename);
 			free(img[i]);
 		}
-
 		return -1;
 	}
 
-	sprintf(ffm_input,"%d_frames/frame_%%06d.png",pid);
+	sprintf(ffm_input,"%d_frames/frame_%%09d.png",pid);
 
 	char *output_vid_name = (char *)malloc(sizeof(char) * 512);
 	if(output_vid_name == NULL){
-
 		fprintf(stderr,
-			"Error allocating memory for ffmpeg output filename.\n");
+			"Error allocating memory for ffmpeg output filename.\n"
+		);
 
 		free(ffm_input);
 		free(preset);
 		free(framerate);
 
-		for(int i=0;i<args->threads; i++){
+		for(short i=0;i<args->threads; i++){
 			free(img[i]->filename);
 			free(img[i]);
 		}
-
 		return -1;
 	}
 
@@ -744,20 +672,19 @@ int encode(arg_s *args){
 
 	char *ffm_args = (char *)malloc(sizeof(char) * 256);
 	if(output_vid_name == NULL){
-		fprintf(
-			stderr,
+		fprintf(stderr,
 			"Error allocating memory for ffmpeg arguments.\n"
 		);
+
 		free(preset);
 		free(framerate);
 		free(ffm_input);
 		free(output_vid_name);
 
-		for(int i=0;i<args->threads; i++){
+		for(short i=0;i<args->threads; i++){
 			free(img[i]->filename);
 			free(img[i]);
 		}
-
 		return -1;
 	}
 	if(args->noconfirm){
@@ -815,52 +742,46 @@ int encode(arg_s *args){
 	return 0;
 }
 
-int decode(arg_s *args){
+short decode(arg_s *args){
 	if(!args->skip_ffmpeg && !args->noconfirm){
 		if(replace(args->output_file_path)){
 			return 0;
 		}
 	}
 
-	int input_folder= 0;
 	char *input_dir;
+	_Bool input_folder = 0;
 
 	struct stat path_stat;
 	stat(args->input_file_path, &path_stat);
 
 	if(S_ISDIR(path_stat.st_mode)){
-		input_folder = 1;
-	}
-
-	if(input_folder){
 		if(!args->quiet){
 			fprintf(stderr,"'%s' is a folder. ",args->input_file_path);
 			fprintf(stderr,"FFMPEG frame extraction skipped.\n");
 		}
 		input_dir = args->input_file_path;
+		input_folder = 1;
 	}
 
 	else{
-		int pid = getpid();
+		pid_t pid = getpid();
 
 		char *dir_ffm = (char *)malloc(sizeof(char) * 128);
 		if(dir_ffm == NULL){
-
-			fprintf(
-				stderr,
+			fprintf(stderr,
 				"Error allocating memory for output frame extract.\n"
 			);
 
 			return -1;
 		}
 
-		sprintf(dir_ffm,"%d_frames/frame_%%06d.png",pid);
+		sprintf(dir_ffm,"%d_frames/frame_%%09d.png",pid);
 
 		input_dir = (char *)malloc(sizeof(char) * 128);
 		sprintf(input_dir,"%d_frames",pid);
 		if(input_dir == NULL){
-			fprintf(
-				stderr,
+			fprintf(stderr,
 				"Error allocating memory for output frame extract.\n"
 			);
 			return -1;
@@ -873,9 +794,9 @@ int decode(arg_s *args){
 
 		pidC = fork();
 
-		if(pidC > 0){
+		if(pidC > 0)
 			printf("Extracting frames of %s\n",args->input_file_path);
-		}
+
 		else if(pidC == 0){
 			execlp(args->ffmpeg_path,"ffmpeg",
 			"-i",args->input_file_path,dir_ffm,
@@ -928,7 +849,6 @@ int decode(arg_s *args){
 	}
 
 	char framename[7]; /*frame_*/
-
 	char **filenames;
 
 	filenames = (char **)malloc(sizeof(char *));
@@ -967,14 +887,10 @@ int decode(arg_s *args){
 			return -1;
 		}
 */
-		for(int i=0;i<5;i++){
-			framename[i] = input->d_name[i];
-		}
-
+		for(short i=0;i<5;i++) framename[i] = input->d_name[i];
 		framename[5] = '\0';
 
 		if(!strcmp(framename, "frame")){
-
 			char **filenames_p;
 
 			sprintf(
@@ -985,7 +901,8 @@ int decode(arg_s *args){
 			);
 			frame_count++;
 
-			filenames_p = realloc(filenames,
+			filenames_p = realloc(
+							filenames,
 							(frame_count + 1) * sizeof(char *));
 
 			if(filenames_p == NULL){
@@ -1029,10 +946,9 @@ int decode(arg_s *args){
 	else
 		qsort(filenames,frame_count,sizeof(char *),compat);
 
-	int aprox_size;
+	unsigned int aprox_size;
 	aprox_size = (args->width*args->height*frame_count)/
 				(args->pixel_size*args->pixel_size*8);
-
 
 	printf(" * Frames: %d\n",frame_count);
 	printf(" * Approximate output size: ");
@@ -1052,9 +968,7 @@ int decode(arg_s *args){
 		return -1;
 	}
 
-	if(args->noprogress){
-		fprintf(stderr,"Decoding data from images...\n");
-	}
+	if(args->noprogress) fprintf(stderr,"Decoding data from images...\n");
 
 	short percent;
 
@@ -1062,19 +976,14 @@ int decode(arg_s *args){
 	_Bool reverse_y = 0;
 	_Bool invert_color = 0;
 	_Bool eend = 0;
-
-	short invert_byte;
-	if(args->invert_byte)
-		invert_byte = 7;
-	else
-		invert_byte = 0;
+	short invert_byte = args->invert_byte ? 7 : 0;
 
 	png_structp png;
 	png_infop info;
 	FILE *frame;
 
-	for(int i=0;i<frame_count;i++){
-		if(args->odd_mode){
+	for(int i=0;i<frame_count && !eend;i++){
+		if(args->odd){
 			if(!(i%2)){
 				reverse_x = 1;
 				reverse_y = 1;
@@ -1101,12 +1010,8 @@ int decode(arg_s *args){
 		}
 
 		if(!args->noprogress){
-			if(frame_count > 1){
-				percent = (100*i)/(frame_count-1);
-			}
-			else{
-				percent = 100;
-			}
+			if(frame_count > 1) percent = (100*i)/(frame_count-1);
+			else percent = 100;
 			fprintf(stderr,"\rDecoding %s | %d%%",filenames[i],percent);
 		}
 
@@ -1153,37 +1058,34 @@ int decode(arg_s *args){
 		png_byte color_type = png_get_color_type(png, info);
 		png_byte bit_depth = png_get_bit_depth(png, info);
 
-
-		if (color_type == PNG_COLOR_TYPE_PALETTE){
+		if(color_type == PNG_COLOR_TYPE_PALETTE)
 			png_set_expand_gray_1_2_4_to_8(png);
-		}
 
-		if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8){
+		if(color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8)
 			png_set_expand_gray_1_2_4_to_8(png);
-		}
 
-		if (png_get_valid(png, info, PNG_INFO_tRNS)){
+		if(png_get_valid(png, info, PNG_INFO_tRNS))
 			png_set_tRNS_to_alpha(png);
-		}
 
-		if (color_type == PNG_COLOR_TYPE_RGB ||
+		if(
+			color_type == PNG_COLOR_TYPE_RGB ||
 			color_type == PNG_COLOR_TYPE_GRAY ||
-			color_type == PNG_COLOR_TYPE_PALETTE){
+			color_type == PNG_COLOR_TYPE_PALETTE
+		)
 			png_set_filler(png, 0xFF, PNG_FILLER_AFTER);
-		}
 
-		if (color_type == PNG_COLOR_TYPE_GRAY ||
-			color_type == PNG_COLOR_TYPE_GRAY_ALPHA){
+		if(
+			color_type == PNG_COLOR_TYPE_GRAY ||
+			color_type == PNG_COLOR_TYPE_GRAY_ALPHA
+		)
 			png_set_gray_to_rgb(png);
-		}
 
 		png_read_update_info(png, info);
 
-		png_bytep *row_pointers;
-		row_pointers = (png_bytep *)malloc(sizeof(png_bytep) * height);
+		png_bytep *row_pointers = 
+		(png_bytep *)malloc(sizeof(png_bytep) * height);
 		if(row_pointers == NULL){
-			fprintf(
-				stderr,
+			fprintf(stderr,
 				"\nError allocating memory for PNG row vector.\n"
 			);
 			fclose(out);
@@ -1198,9 +1100,7 @@ int decode(arg_s *args){
 			(png_byte *)malloc(png_get_rowbytes(png, info));
 
 			if(row_pointers[i] == NULL){
-
-				fprintf(
-					stderr,
+				fprintf(stderr,
 					"\nError allocating memory for PNG row pointers.\n"
 				);
 
@@ -1232,8 +1132,7 @@ int decode(arg_s *args){
 						row_pointers,
 						x,y,
 						args->pixel_size,
-						args->rmode
-					);
+						args->rmode);
 
 				if(res == 127){
 					eend = 1;
@@ -1246,9 +1145,10 @@ int decode(arg_s *args){
 				if(k>7){
 					lett = set_bin(num,invert_color);
 					if(0 == fwrite(&lett,1,sizeof(char),out)){
-
-						fprintf(stderr,
-							"\nError writing byte to output file.\n");
+						fprintf(
+							stderr,
+							"\nError writing byte to output file.\n"
+						);
 
 						fclose(out);
 						fclose(frame);
@@ -1267,23 +1167,19 @@ int decode(arg_s *args){
 
 		fclose(frame);
 
-		for(int i=0;i<args->height;i++){
-			free(row_pointers[i]);
-		}
+		for(int i=0;i<height;i++) free(row_pointers[i]);
 		free(row_pointers);
+
 	}
 
 	free(num);
 
 	if(!args->keep_frames){
-		if(!args->quiet)
-			fprintf(stderr,"Deleting frame files...\n");
-
+		if(!args->quiet) fprintf(stderr,"Deleting frame files...\n");
 		for(int i=0;i<frame_count;i++){
 			if(0 != remove(filenames[i])){
 				perror("remove");
-				fprintf(
-					stderr,
+				fprintf(stderr,
 					"Error deleting file: %s...",
 					filenames[i]
 				);
@@ -1294,10 +1190,8 @@ int decode(arg_s *args){
 			perror("rmdir");
 			fprintf(stderr,"Error deleting folder: %s...",input_dir);
 		}
-		else{
-			if(!args->quiet)
-				printf("Removed directory: %s/\n",input_dir);
-		}
+		else if(!args->quiet)
+			printf("Removed directory: %s/\n",input_dir);
 	}
 
 	closedir(dir);
@@ -1317,40 +1211,36 @@ int main(int argc, char *argv[]){
 
 	if(getopts(&args,argc,argv) != 0) return 1;
 
+#ifndef __WIN32
 	if(!args.skip_ffmpeg){
 		args.ffmpeg_path = (char *)malloc(sizeof(char) * 64);
 		if(args.ffmpeg_path == NULL){
-			fprintf(
-				stderr,
-				"Error allocating memory for FFMPEG file path.\n"
-			);
+			fprintf(stderr,"Error allocating memory for FFMPEG file path.\n");
 			return 1;
 		}
-#ifndef __WIN32
+
 		if(0 == check_ffmpeg(args.ffmpeg_path)){
-			if(!args.quiet)
-				printf(
-					"Found FFMPEG binary at: %s\n",
-					args.ffmpeg_path
-				);
-		}
-#else
-		if(0 == check_ffmpeg()){
-			fprintf(stderr,"Error. '%s' not found.\n",FFMPEG_EXE_PATH);
+			if(!args.quiet) printf("Found FFMPEG at: %s\n",args.ffmpeg_path);
 		}
 		else{
 			fprintf(stderr,"\nFFMPEG not found on your system.\n");
 			fprintf(stderr,"Please install it and retry.\n");
+			return 1;
 		}
-#endif
 	}
+#else
+	if(!args.skip_ffmpeg){
+		if(0 == check_ffmpeg()){
+			fprintf(stderr,"Error. '%s' not found.\n",FFMPEG_EXE_PATH);
+			return 1;
+		}
+	}
+#endif
 
-	if(args.operation) decode(&args);
-	else encode(&args);
+	args.operation ? decode(&args) : encode(&args);
 
 #ifndef __WIN32
 	free(args.ffmpeg_path);
 #endif
-
 	return 0;
 }

@@ -7,12 +7,12 @@ typedef struct{
 	short threads;
 	short pixel_size;
 	short rmode;
+	short framerate;
 	char *input_file_path;
 	char *output_file_path;
 	char *codec;
 	char *ffmpeg_path;
 	char *frame_folder;
-	int framerate;
 	_Bool operation;
 	_Bool ultrafast;
 	_Bool noconfirm;
@@ -23,12 +23,11 @@ typedef struct{
 	_Bool reverse_x;
 	_Bool reverse_y;
 	_Bool invert_color;
-	_Bool odd_mode;
+	_Bool odd;
 	_Bool invert_frames;
 	_Bool invert_byte;
 }arg_s;
 
 int getopts(arg_s *args, int argc, char *argv[]);
-int compat(const void *a, const void *b);
 
 #endif

@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define __VERSION "1.4.0"
+#define __VERSION "1.4.2"
 char *default_codec = "libx265";
 
 typedef struct{
@@ -11,12 +11,12 @@ typedef struct{
 	short threads;
 	short pixel_size;
 	short rmode;
+	short framerate;
 	char *input_file_path;
 	char *output_file_path;
 	char *codec;
 	char *ffmpeg_path;
 	char *frame_folder;
-	int framerate;
 	_Bool operation;
 	_Bool ultrafast;
 	_Bool noconfirm;
@@ -161,7 +161,7 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	short am = 2;
 	short j,k,l;
 
-	for(int i=1; i<argc; i++){
+	for(short i=1; i<argc; i++){
 		if(!strcmp(argv[i],"-e")){ //encode argument
 			if(earg){
 				fprintf(stderr,"Duplicated encode (-e) argument.\n");
@@ -579,54 +579,38 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	}
 	if(earg){
 		args->operation = 0;
-		if(carg){
-			args->codec = argv[codec_arg_pos];
-		}
-		else{
-			if(!qarg){
-				fprintf(
-					stderr,
-					"No codec name been provided. Using default (libx265)\n"
-				);
-			}
-			args->codec = default_codec;
-		}
-		if(aarg){
+		if(carg) args->codec = argv[codec_arg_pos];
+		else args->codec = default_codec;
+
+		if(aarg)
 			fprintf(
 				stderr,
 				"-a is only available with -d (video to file). Ignoring.\n"
 			);
-		}
 	}
 	if(darg){
 		args->operation = 1;
 		if(!qarg){
-			if(zarg){
+			if(zarg)
 				fprintf(stderr,"-z argument is only available with -e (file to video). Ignoring.\n");
-			}
-			if(farg){
+			if(farg)
 				fprintf(stderr,"-f argument is only available with -e (file to video). Ignoring.\n");
-			}
-			if(targ){
+			if(targ)
 				fprintf(stderr,"-t argument is only available with -e (file to video). Ignoring.\n");
-			}
-			if(carg){
+			if(carg)
 				fprintf(stderr,"-c argument is only available with -e (file to video). Ignoring.\n");
-			}
-			if(sarg){
+			if(sarg)
 				fprintf(stderr,"-s argument is only available with -e (file to video). Ignoring.\n");
-			}
 		}
-
 		if(sarg){
 			fprintf(stderr,"The FFMPEG process cannot be skipped in decode operation (-s argumnt)\n");
 			return 1;
 		}
 		args->codec = NULL;
 	}
-	if(earg && sarg && oarg && !qarg){
+	if(earg && sarg && oarg && !qarg)
 		fprintf(stderr,"-o will be ignored, FFMPEG process skipped.\n");
-	}
+
 	if(pixel_size > args->width || pixel_size > args->height){
 		fprintf(stderr,"Error: Pixel size is higher than width-height\n");
 		return 1;
