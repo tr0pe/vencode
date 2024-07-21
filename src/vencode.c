@@ -716,7 +716,7 @@ short encode(arg_s *args){
 	char path[64];
 
 	while(1){
-		sprintf(path,"%d_frames/frame_%06ld.png",pid,file_quant);
+		sprintf(path,"%d_frames/frame_%09ld.png",pid,file_quant);
 
 		if(access(path, R_OK) != 0) break;
 		else file_quant++;
