@@ -2,12 +2,13 @@
 #define __args_h
 
 typedef struct{
-	unsigned int width;
-	unsigned int height;
+	unsigned short width;
+	unsigned short height;
 	short threads;
 	short pixel_size;
 	short rmode;
 	short framerate;
+	short grange[2];
 	char *input_file_path;
 	char *output_file_path;
 	char *codec;

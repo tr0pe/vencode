@@ -8,10 +8,10 @@ int check_ffmpeg(char *ffm_path);
 char getch(void);
 #endif
 
-FILE *open_file(const char *filename, long unsigned int *filesize);
+FILE *open_file(const char *filename, unsigned long long *filesize);
 short dig(short num);
 void destroy_filenames(char **filenames,unsigned int count);
-void print_size(long unsigned bytes);
+void print_size(unsigned long bytes);
 void img_index(char *ptr, unsigned int num, pid_t pid, char *ext);
 int compat(const void *a, const void *b);
 int compat_reverse(const void *a, const void *b);

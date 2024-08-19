@@ -2,16 +2,17 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define __VERSION "1.4.3"
+#define __VERSION "1.5.0"
 char *default_codec = "libx265";
 
 typedef struct{
-	unsigned int width;
-	unsigned int height;
+	unsigned short width;
+	unsigned short height;
 	short threads;
 	short pixel_size;
 	short rmode;
 	short framerate;
+	short grange[2];
 	char *input_file_path;
 	char *output_file_path;
 	char *codec;
@@ -103,6 +104,17 @@ void print_help(char *argv0){
 	printf("                                     (accurate)\n");
 	printf("                                Default value: 2.\n\n");
 
+	printf(" -v [1,0]                       Set the bit color range.\n");
+	printf("                                When a square-bit is parsed, the value of color\n");
+	printf("                                will be inaccurate. With this argument you can set\n");
+	printf("                                the values for colors that will be parsed as 0, 1.\n");
+	printf("                                The default values are\n");
+	printf("                                  1 if color < 80\n");
+	printf("                                  0 if color > 180\n");
+	printf("                                The end of file will be detected if color is not in\n");
+	printf("                                that range.\n");
+	printf("                                The values must be between 0 and 255.\n\n");
+
 	printf(" -y                             Reverse X axis\n\n");
 	printf(" -Y                             Reverse Y axis\n\n");
 
@@ -130,6 +142,8 @@ void print_help(char *argv0){
 int getopts(arg_s *args, int argc, char *argv[]){
 	char height[8];
 	char  width[8];
+	char range1[3];
+	char range0[3];
 	_Bool rarg = 0;
 	_Bool targ = 0;
 	_Bool parg = 0;
@@ -151,7 +165,9 @@ int getopts(arg_s *args, int argc, char *argv[]){
 	_Bool uarg = 0;
 	_Bool jarg = 0;
 	_Bool garg = 0;
+	_Bool varg = 0;
 	short rXcount = 0;
+	short vcount  = 0;
 	short threads = 1;
 	short pixel_size = 4;
 	short in_file_arg_pos = 0;
@@ -273,14 +289,83 @@ int getopts(arg_s *args, int argc, char *argv[]){
 				j++;
 			}
 			if(rXcount == 0){
-					fprintf(stderr,"%s: Invalid resolution argument.\n",
-																argv[i+1]);
+				fprintf(
+					stderr,
+					"%s: Invalid resolution argument.\n",
+					argv[i+1]
+				);
 				return 1;
 			}
 			width[k]  = '\0';
 			height[l] = '\0';
 
 			rarg = 1;
+			i++;
+		}
+		else if(!strcmp(argv[i],"-v")){ // grayscale ranges argument
+			j = 0;
+			k = 0;
+			l = 0;
+			if(varg){
+				fprintf(stderr,"Duplicated grayscale range argument.\n");
+				return 1;
+			}
+			if(i+1 >= argc){
+				fprintf(stderr,"-v requires an argument.\n");
+				return 1;
+			}
+
+			while(argv[i+1][j] != '\0'){
+				if(vcount > 1 ||
+					argv[i+1][0] == ',' ||
+					argv[i+1][strlen(argv[i+1])-1] == ','){
+
+					fprintf(
+						stderr,
+						"%s: Invalid  argument.\n",
+						argv[i+1]
+					);
+
+					return 1;
+				}
+
+				else if(argv[i+1][j] >= 48 && argv[i+1][j] <= 57){
+					if(!vcount){
+						range0[k] = argv[i+1][j];
+						k++;
+					}
+					else{
+						range1[l] = argv[i+1][j];
+						l++;
+					}
+				}
+
+				else if(argv[i+1][j] == ','){
+					vcount++;
+				}
+
+				else{
+					fprintf(
+						stderr,
+						"%s: Invalid resolution argument.\n",
+						argv[i+1]
+					);
+					return 1;
+				}
+				j++;
+			}
+			if(vcount == 0){
+				fprintf(
+					stderr,
+					"%s: Invalid resolution argument.\n",
+					argv[i+1]
+				);
+				return 1;
+			}
+			range0[k]  = '\0';
+			range1[l] = '\0';
+
+			varg = 1;
 			i++;
 		}
 		else if(!strcmp(argv[i],"-t")){//threads argument
@@ -574,6 +659,20 @@ int getopts(arg_s *args, int argc, char *argv[]){
 
 		if(args->width == 0 || args->height == 0){
 			fprintf(stderr,"Resolution value is 0!\n");
+			return 1;
+		}
+	}
+	if(varg){
+		if(strlen(range0) > 3 || strlen(range1) > 3){
+			fprintf(stderr,"Grayscale range is very big!\n");
+			return 1;
+		}
+
+		args->grange[0] = atoi(range0);
+		args->grange[1] = atoi(range1);
+
+		if(args->grange[0] > 255 || args->grange[1] > 255){
+			fprintf(stderr,"Grayscale range is higher than 255!\n");
 			return 1;
 		}
 	}

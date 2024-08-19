@@ -42,7 +42,7 @@ int check_ffmpeg(char *ffm_path){
 }
 #endif
 
-FILE *open_file(const char *filename, long unsigned int *filesize){
+FILE *open_file(const char *filename, unsigned long long *filesize){
 	FILE *fd = fopen(filename,"rb");
 
 	if(fd == NULL){
@@ -95,7 +95,7 @@ void destroy_filenames(char **filenames,unsigned int count){
 	}
 }
 
-void print_size(long unsigned bytes){
+void print_size(unsigned long bytes){
 	if(bytes >= GB) printf("%.2fGb\n",(float)bytes/GB);			//1Gb
 	else if(bytes >= MB) printf("%.2fMb\n",(float)bytes/MB);	//1Mb
 	else if(bytes >= KB) printf("%.2fKb\n",(float)bytes/KB);	//1Kb

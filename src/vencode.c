@@ -57,7 +57,11 @@ void png_set_pixel(png_bytepp rows,int y,int x,short color,short pixel_size){
 			rows[y+i][x + j] = color;
 }
 
-short png_get_pixel(png_bytep *row, int x,int y,short pixel_size,short acc){
+short png_get_pixel(
+	png_bytep *row,
+	int x,int y,short pixel_size,short acc,
+	short grange0, short grange1
+){
 	png_bytep px;
 	short prod = 0;
 
@@ -85,14 +89,14 @@ short png_get_pixel(png_bytep *row, int x,int y,short pixel_size,short acc){
 	}
 
 	//todo: dynamic value adjustment
-	if(prod < 180 && prod > 80){
+	if(prod < grange0 && prod > grange1){
 		printf("\nEnd of file | Grayscale (may be ~127) = %d | ",prod);
 		printf("End coord: XY(%d,%d)\n",x,y);
 		return 127;
 	}
 
-	else if(prod > 180) return 0;
-	else if(prod < 80)  return 1;
+	else if(prod > grange0) return 0;
+	else if(prod < grange1) return 1;
 
 	return 127;
 }
@@ -102,11 +106,11 @@ typedef struct{
 	char *input_file_path;
 
 	unsigned int *frame_index;
-	long unsigned int *buf_ind;
-	long unsigned int sz;
-	size_t img_sz;
+	unsigned long *buf_ind;
+	unsigned long sz;
+	unsigned long img_sz;
 
-	long unsigned int pos;
+	unsigned long pos;
 	FILE **input;
 
 	short width;
@@ -125,23 +129,6 @@ typedef struct{
 void *write_image(void *arg){
 
 	wr_img_s *img = (wr_img_s *)arg;
-
-	if(img == NULL){
-		fprintf(stderr,"NULL argument.\nExiting...\n");
-		return NULL;
-	}
-
-	if(img->input == NULL){
-		fprintf(stderr,"Input stream pointer is NULL\n");
-		img->return_value = -1;
-		return NULL;
-	}
-
-	if(img->filename == NULL){
-		fprintf(stderr,"The image filename is NULL\n");
-		img->return_value = -1;
-		return NULL;
-	}
 
 	_Bool *num = (_Bool *)malloc(sizeof(_Bool) * 8);
 	if(num == NULL){
@@ -181,7 +168,7 @@ void *write_image(void *arg){
 
 	pthread_mutex_unlock(&mutex);
 
-	long unsigned int buf_ind = img->pos;
+	unsigned long buf_ind = img->pos;
 
 	unsigned int buffer_index = 0;
 	char c;
@@ -331,7 +318,7 @@ short encode(arg_s *args){
 		}
 	}
 
-	long unsigned int sz;
+	unsigned long long sz;
 
 	FILE *input = open_file(args->input_file_path,&sz);
 	if(input == NULL) return -1;
@@ -342,18 +329,19 @@ short encode(arg_s *args){
 		return 1;
 	}
 
-	long unsigned int max_img_size;
+	unsigned long long max_img_size;
 	max_img_size = (args->width * args->height)/
 	(args->pixel_size * args->pixel_size * 8);
 
 	if(max_img_size == 0){
-		fprintf(stderr,
+		fprintf(
+			stderr,
 			"Error: At least 1 byte must be stored per frame.\n"
 		);
 		return 1;
 	}
 
-	unsigned int img_quant = sz/max_img_size;
+	unsigned long img_quant = sz/max_img_size;
 
 	img_quant++;
 
@@ -361,7 +349,7 @@ short encode(arg_s *args){
 	print_size(max_img_size);
 	printf(" * Input file size: ");
 	print_size(sz);
-	printf(" * Frame quant: %d\n",img_quant);
+	printf(" * Frame quant: %ld\n",img_quant);
 
 	if(!args->noconfirm){
 		fprintf(stderr," > Press Enter to continue...");
@@ -712,7 +700,7 @@ short encode(arg_s *args){
 		return 0;
 	}
 
-	unsigned long int file_quant = 0;
+	unsigned long file_quant = 0;
 	char path[64];
 
 	while(1){
@@ -1132,7 +1120,9 @@ short decode(arg_s *args){
 						row_pointers,
 						x,y,
 						args->pixel_size,
-						args->rmode);
+						args->rmode,
+						args->grange[0] ? args->grange[0] : 180,
+						args->grange[1] ? args->grange[1] : 80);
 
 				if(res == 127){
 					eend = 1;
