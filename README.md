@@ -3,11 +3,9 @@
 
 ![preview](assets/preview.gif)
 ### Dependencies to install
-- For Windows:
-	* Anything
-- UNIX-like (Linux, BSD, MacOS, Android, etc):
 	* libpng
 	* ffmpeg
+	* zlib
 
 ### Introduction
 Convert any file to video... You can upload it to YouTube and get infinite storage...
@@ -35,26 +33,12 @@ You can read more about the options typing:
 `$ ./vencode -h`
 
 ### Build
-For any GNU system, configure and make:
-
-`$ ./configure`
+For any *NIX system:
 
 `$ make`
+
+`$ sudo make install`
  
-If you are using BSD, you need to use gmake:
-
-`$ ./configure`
-
-`$ gmake`
-
-For Windows... You must have installed a C compiler and GNU Make, then set the CC and WINDRESS variables with the appropriate values, and finally type:
-
-`C:> make -f MinGW/Makefile.win`
-
-the 'MinGW' folder (for Windows build). contains the needed libraires (libpng and zlib) with their licenses and FFMPEG binary.
-
-Note: You can build a Windows binary on any operating system with MinGW toolchain.
-
 ### Multi thread writing
 A fixed thread count is not efficient because many devices have a different CPU power and cores, so you can choose any value, in my case, setting the double of my CPU cores as thread count works fine. However, you can experiment with setting a higher value for improved speed, but be careful, the result may be a slower process if you set too many threads for your CPU.
 
